@@ -1,16 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anime Episode Tracker</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Anime Tracker — Mini MAL</title>
+
+  <!-- stylesheet -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Upcoming Anime Episodes</h1>
-  <div id="episodes-container">Loading...</div>
-<link rel="stylesheet" href="style.css">
-<script src="script.js"></script>
-  
+
+  <!-- FIXED NAVBAR -->
+  <header class="navbar">
+    <div class="brand">Anime Tracker</div>
+    <nav class="nav-links">
+      <button class="nav-btn active" data-view="top">Top</button>
+      <button class="nav-btn" data-view="airing">Airing</button>
+      <button class="nav-btn" data-view="upcoming">Upcoming</button>
+      <button class="nav-btn" data-view="genres">Genres</button>
+      <button class="nav-btn" data-view="reviews">Reviews</button>
+    </nav>
+    <div class="search-wrap">
+      <input id="searchInput" placeholder="Search anime (type 3+ chars)..." />
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main id="main" class="page-content">
+    <!-- Page headings -->
+    <section id="section-top" class="section active">
+      <h2>Top Anime</h2>
+      <div class="grid" id="grid-top">Loading...</div>
+    </section>
+
+    <section id="section-airing" class="section">
+      <h2>Airing Now</h2>
+      <div class="grid" id="grid-airing">Loading...</div>
+    </section>
+
+    <section id="section-upcoming" class="section">
+      <h2>Upcoming</h2>
+      <div class="grid" id="grid-upcoming">Loading...</div>
+    </section>
+
+    <section id="section-genres" class="section">
+      <h2>Genres</h2>
+      <div id="genre-list" class="genre-list">
+        <!-- Genre buttons inserted by JS -->
+      </div>
+      <div class="grid" id="grid-genre-results"></div>
+    </section>
+
+    <section id="section-reviews" class="section">
+      <h2>Reviews (sample)</h2>
+      <div id="reviews-list" class="reviews-list">Loading reviews...</div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <small>Powered by Jikan API • Built with HTML/CSS/JS</small>
+  </footer>
+
+  <!-- javascript -->
+  <script src="script.js"></script>
 </body>
 </html>
