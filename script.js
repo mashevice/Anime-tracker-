@@ -1,168 +1,135 @@
-const API_URL = "https://api.jikan.moe/v4";
+const API = 'https://api.jikan.moe/v4';
+const els = {
+  carouselTop: document.getElementById('carousel-top'),
+  carouselAiring: document.getElementById('carousel-airing'),
+  carouselUpcoming: document.getElementById('carousel-upcoming'),
+  heroTitle: document.getElementById('hero-title'),
+  heroImage: document.getElementById('hero-image'),
+  heroExplore: document.getElementById('hero-explore'),
+  heroAiring: document.getElementById('hero-airing'),
+  globalSearch: document.getElementById('globalSearch'),
+  detailModal: document.getElementById('detailModal'),
+  modalBody: document.getElementById('modal-body'),
+  closeModal: document.getElementById('closeModal')
+};
 
-// Elements
-const contentDiv = document.getElementById("content");
-const sectionTitle = document.getElementById("sectionTitle");
-const searchInput = document.getElementById("searchInput");
+function el(tag, cls) { const d = document.createElement(tag); if (cls) d.className = cls; return d; }
 
-// Navbar buttons
-const airingBtn = document.getElementById("airingBtn");
-const upcomingBtn = document.getElementById("upcomingBtn");
-const topBtn = document.getElementById("topBtn");
-const genreBtn = document.getElementById("genreBtn");
-const reviewsBtn = document.getElementById("reviewsBtn");
+async function fetchJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Network error');
+  return res.json();
+}
 
-// ====== EVENT LISTENERS ======
-airingBtn.addEventListener("click", () => fetchAnime("airing"));
-upcomingBtn.addEventListener("click", () => fetchAnime("upcoming"));
-topBtn.addEventListener("click", () => fetchAnime("top"));
-genreBtn.addEventListener("click", () => fetchGenres());
-reviewsBtn.addEventListener("click", () => fetchReviews());
-searchInput.addEventListener("input", searchAnime);
+function makeCard(anime) {
+  const c = el('div','card');
+  c.tabIndex = 0;
+  c.innerHTML = `
+    <img src="${anime.images?.jpg?.image_url || ''}" alt="${anime.title}">
+    <div class="card-body">
+      <div class="card-title">${anime.title}</div>
+      <div class="card-meta">⭐ ${anime.score ?? 'N/A'}</div>
+    </div>`;
+  c.onclick = () => openDetail(anime);
+  c.onkeypress = (e) => { if (e.key === 'Enter') openDetail(anime); };
+  return c;
+}
 
-// ====== FUNCTIONS ======
-async function fetchAnime(type) {
-  sectionTitle.textContent =
-    type === "airing"
-      ? "Airing Anime"
-      : type === "upcoming"
-      ? "Upcoming Anime"
-      : "Top Rated Anime";
-
-  contentDiv.innerHTML = "<p>Loading...</p>";
-
+async function loadTop() {
   try {
-    const url =
-      type === "top"
-        ? `${API_URL}/top/anime`
-        : `${API_URL}/seasons/${type}`;
-    const res = await fetch(url);
-    const data = await res.json();
-
-    if (!data.data) throw new Error("No data found");
-
-    displayAnime(data.data);
-  } catch (err) {
-    contentDiv.innerHTML = `<p>Error loading data 😭</p>`;
-    console.error(err);
+    els.carouselTop.innerHTML = 'Loading...';
+    const data = await fetchJson(`${API}/top/anime?limit=12`);
+    els.carouselTop.innerHTML = '';
+    data.data.forEach(a => els.carouselTop.appendChild(makeCard(a)));
+    setHero(data.data[0]); // pick first for hero
+  } catch(e) {
+    els.carouselTop.innerHTML = '<div style="color:#f00">Failed to load top</div>';
+    console.error(e);
   }
 }
 
-function displayAnime(animeList) {
-  contentDiv.innerHTML = "";
-  const grid = document.createElement("div");
-  grid.className = "grid";
-
-  animeList.forEach((anime) => {
-    const card = document.createElement("div");
-    card.className = "card";
-
-    card.innerHTML = `
-      <img src="${anime.images.jpg.image_url}" alt="${anime.title}">
-      <h3>${anime.title}</h3>
-      <p style="padding: 0 8px;">⭐ ${anime.score || "N/A"}</p>
-    `;
-
-    grid.appendChild(card);
-  });
-
-  contentDiv.appendChild(grid);
-}
-
-// ====== SEARCH ======
-async function searchAnime() {
-  const query = searchInput.value.trim();
-  if (query.length < 3) return; // wait until user types 3+ chars
-  sectionTitle.textContent = `Search Results for "${query}"`;
-  contentDiv.innerHTML = "<p>Searching...</p>";
-
+async function loadAiring() {
   try {
-    const res = await fetch(`${API_URL}/anime?q=${query}&limit=20`);
-    const data = await res.json();
-
-    if (!data.data.length) {
-      contentDiv.innerHTML = "<p>No anime found 😞</p>";
-      return;
-    }
-
-    displayAnime(data.data);
-  } catch (err) {
-    console.error(err);
-    contentDiv.innerHTML = "<p>Search failed 😭</p>";
+    els.carouselAiring.innerHTML = 'Loading...';
+    const data = await fetchJson(`${API}/seasons/now`);
+    els.carouselAiring.innerHTML = '';
+    data.data.slice(0,12).forEach(a => els.carouselAiring.appendChild(makeCard(a)));
+  } catch(e) {
+    els.carouselAiring.innerHTML = '<div style="color:#f00">Failed to load airing</div>';
+    console.error(e);
   }
 }
 
-// ====== GENRES ======
-async function fetchGenres() {
-  sectionTitle.textContent = "Genres";
-  contentDiv.innerHTML = "<p>Loading genres...</p>";
-
+async function loadUpcoming() {
   try {
-    const res = await fetch(`${API_URL}/genres/anime`);
-    const data = await res.json();
-    const genres = data.data;
-
-    const div = document.createElement("div");
-    div.className = "genre-list";
-
-    genres.forEach((g) => {
-      const btn = document.createElement("button");
-      btn.className = "genre-btn";
-      btn.textContent = g.name;
-      btn.onclick = () => fetchAnimeByGenre(g.mal_id);
-      div.appendChild(btn);
-    });
-
-    contentDiv.innerHTML = "";
-    contentDiv.appendChild(div);
-  } catch (err) {
-    contentDiv.innerHTML = "<p>Failed to load genres 😭</p>";
+    els.carouselUpcoming.innerHTML = 'Loading...';
+    const data = await fetchJson(`${API}/seasons/upcoming`);
+    els.carouselUpcoming.innerHTML = '';
+    (data.data||[]).slice(0,12).forEach(a => els.carouselUpcoming.appendChild(makeCard(a)));
+  } catch(e) {
+    els.carouselUpcoming.innerHTML = '<div style="color:#f00">Failed to load upcoming</div>';
+    console.error(e);
   }
 }
 
-async function fetchAnimeByGenre(id) {
-  sectionTitle.textContent = "Genre Results";
-  contentDiv.innerHTML = "<p>Loading...</p>";
+function setHero(anime) {
+  if(!anime) return;
+  els.heroTitle.textContent = anime.title;
+  els.heroImage.style.backgroundImage = `url(${anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || ''})`;
+  els.heroSub = anime;
+  els.heroExplore.onclick = () => openDetail(anime);
+  els.heroAiring.onclick = () => loadAiring();
+}
 
-  try {
-    const res = await fetch(`${API_URL}/anime?genres=${id}&limit=20`);
-    const data = await res.json();
-    displayAnime(data.data);
-  } catch (err) {
-    contentDiv.innerHTML = "<p>Error loading genre data 😭</p>";
+async function openDetail(anime) {
+  // show modal content
+  const html = `
+    <div style="display:flex;gap:16px">
+      <div style="flex:0 0 260px"><img src="${anime.images?.jpg?.image_url}" style="width:100%;border-radius:8px"></div>
+      <div style="flex:1">
+        <h2>${anime.title}</h2>
+        <p><strong>Score:</strong> ${anime.score ?? 'N/A'} • <strong>Type:</strong> ${anime.type ?? 'N/A'}</p>
+        <p style="color:#555">${anime.synopsis ?? 'No description available.'}</p>
+        <p><a href="https://myanimelist.net/anime/${anime.mal_id}" target="_blank" rel="noopener">View on MyAnimeList</a></p>
+      </div>
+    </div>
+  `;
+  els.modalBody.innerHTML = html;
+  els.detailModal.classList.remove('hidden');
+  els.detailModal.setAttribute('aria-hidden','false');
+}
+
+function closeModal() {
+  els.detailModal.classList.add('hidden');
+  els.detailModal.setAttribute('aria-hidden','true');
+}
+
+// search
+let searchTimer = null;
+els.globalSearch.addEventListener('input', ()=>{
+  const q=els.globalSearch.value.trim();
+  if(searchTimer) clearTimeout(searchTimer);
+  if(q.length<3) return;
+  searchTimer = setTimeout(()=>searchAnime(q), 400);
+});
+
+async function searchAnime(q){
+  try{
+    const res = await fetchJson(`${API}/anime?q=${encodeURIComponent(q)}&limit=12`);
+    // show results by replacing a section (simple)
+    document.querySelector('#carousel-top').innerHTML = '';
+    (res.data || []).forEach(a => document.querySelector('#carousel-top').appendChild(makeCard(a)));
+    window.scrollTo({top:200, behavior:'smooth'});
+  }catch(e){
+    console.error(e);
   }
 }
 
-// ====== REVIEWS ======
-async function fetchReviews() {
-  sectionTitle.textContent = "Recent Reviews";
-  contentDiv.innerHTML = "<p>Loading reviews...</p>";
+// modal close hooks
+els.closeModal?.addEventListener('click', closeModal);
+els.detailModal?.addEventListener('click', (e)=>{ if(e.target===els.detailModal) closeModal(); });
 
-  try {
-    const res = await fetch(`${API_URL}/reviews/anime`);
-    const data = await res.json();
-
-    const reviews = data.data.slice(0, 10);
-    const list = document.createElement("div");
-    list.className = "reviews-list";
-
-    reviews.forEach((review) => {
-      const div = document.createElement("div");
-      div.className = "review";
-      div.innerHTML = `
-        <h3>${review.entry.title}</h3>
-        <p>${review.review.substring(0, 150)}...</p>
-        <p><strong>Score:</strong> ${review.score}</p>
-      `;
-      list.appendChild(div);
-    });
-
-    contentDiv.innerHTML = "";
-    contentDiv.appendChild(list);
-  } catch (err) {
-    contentDiv.innerHTML = "<p>Failed to load reviews 😭</p>";
-  }
-}
-
-// ====== DEFAULT ======
-fetchAnime("airing");
+// init
+loadTop();
+loadAiring();
+loadUpcoming();
