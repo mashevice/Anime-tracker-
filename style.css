@@ -1,402 +1,194 @@
-/* ===== RESET ===== */
+/* ==== General Layout ==== */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
 }
 
-html, body {
-  font-family: 'Poppins', sans-serif;
-  background-color: #0c0c0c;
+body {
+  background-color: #0b0b0b;
   color: #fff;
   overflow-x: hidden;
-  scroll-behavior: smooth;
 }
 
-button, input {
-  font-family: inherit;
-  outline: none;
-  border: none;
-}
-
-/* ===== NAVBAR ===== */
-.navbar {
+/* ==== Navbar ==== */
+nav {
   position: fixed;
   top: 0;
+  left: 0;
   width: 100%;
-  background: rgba(10, 10, 10, 0.9);
+  background: rgba(15, 15, 15, 0.95);
+  backdrop-filter: blur(10px);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
-  backdrop-filter: blur(5px);
-  z-index: 100;
-  box-shadow: 0 2px 10px rgba(255, 105, 180, 0.3);
+  padding: 15px 40px;
+  z-index: 1000;
+  border-bottom: 1px solid #ff69b4;
 }
 
-.brand {
-  font-size: 1.5em;
+nav .logo {
+  font-size: 1.8rem;
   font-weight: 700;
-  color: #ff66b2;
-}
-
-.nav-links {
-  display: flex;
-  gap: 12px;
-}
-
-.nav-btn {
-  background: transparent;
-  color: #fff;
-  font-size: 0.9em;
+  color: #ff69b4;
   cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 4px;
-  transition: background 0.3s;
 }
 
-.nav-btn:hover,
-.nav-btn.active {
-  background: #ff66b2;
-  color: #000;
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 25px;
 }
 
+nav ul li {
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+nav ul li:hover {
+  color: #ff69b4;
+}
+
+/* ==== Navbar Right (Icons & Search) ==== */
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 20px;
 }
 
-#globalSearch {
+.search-bar {
   background: #1a1a1a;
+  border: 1px solid #ff69b4;
+  border-radius: 20px;
+  padding: 6px 15px;
   color: #fff;
-  border-radius: 4px;
-  padding: 6px 10px;
-  width: 180px;
+  outline: none;
 }
 
-#themeToggle {
-  background: #1a1a1a;
-  border-radius: 50%;
-  padding: 6px;
+.icon {
+  font-size: 1.3rem;
   cursor: pointer;
-  transition: transform 0.3s;
+  transition: color 0.3s ease;
 }
 
-#themeToggle:hover {
-  transform: rotate(20deg);
+.icon:hover {
+  color: #ff69b4;
 }
 
-/* ===== USER MENU ===== */
-.user-menu {
-  position: relative;
-}
-
-#userBtn {
-  background: #1a1a1a;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  font-size: 1.2em;
-  color: #ff66b2;
-  cursor: pointer;
-}
-
-.dropdown {
-  position: absolute;
-  right: 0;
-  top: 35px;
-  background: #151515;
-  border: 1px solid #333;
-  border-radius: 6px;
-  min-width: 160px;
-  padding: 10px;
+/* ==== Hero Section ==== */
+.hero {
+  margin-top: 90px;
+  height: 60vh;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), #0b0b0b),
+    url("https://images7.alphacoders.com/132/1324212.jpeg") center/cover;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  transition: all 0.2s ease;
-}
-
-.dropdown button {
-  background: none;
-  color: #fff;
-  text-align: left;
-  cursor: pointer;
-  padding: 4px 0;
-}
-
-.dropdown button:hover {
-  color: #ff66b2;
-}
-
-.hidden {
-  display: none;
-}
-
-/* ===== HERO ===== */
-.hero {
-  margin-top: 70px;
-  position: relative;
-  background: linear-gradient(180deg, #111 0%, #000 100%);
-  height: 60vh;
-  display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  padding: 40px 10%;
-  overflow: hidden;
-}
-
-.hero-inner {
-  z-index: 2;
-  max-width: 50%;
+  text-align: center;
+  color: white;
 }
 
 .hero h1 {
-  font-size: 2.5em;
-  color: #fff;
+  font-size: 3rem;
+  margin-bottom: 15px;
+  color: #ff69b4;
 }
 
 .hero p {
-  color: #ccc;
-  margin-top: 10px;
-  font-size: 1em;
+  font-size: 1.1rem;
+  width: 60%;
+  max-width: 700px;
 }
 
-.hero-ctas {
-  margin-top: 20px;
-  display: flex;
-  gap: 10px;
+/* ==== Section Titles ==== */
+section {
+  padding: 60px 40px;
 }
 
-.btn {
-  cursor: pointer;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-weight: 600;
-  transition: 0.3s;
+section h2 {
+  font-size: 1.8rem;
+  margin-bottom: 25px;
+  color: #ff69b4;
 }
 
-.btn.primary {
-  background: #ff66b2;
-  color: #000;
-}
-
-.btn.primary:hover {
-  background: #ff85c1;
-}
-
-.btn.outline {
-  border: 2px solid #ff66b2;
-  background: transparent;
-  color: #ff66b2;
-}
-
-.btn.outline:hover {
-  background: #ff66b2;
-  color: #000;
-}
-
-.hero-image {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 50%;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.4;
-  filter: blur(2px);
-}
-
-/* ===== SECTIONS ===== */
-.section {
-  padding: 40px 5%;
-}
-
-.section h2 {
-  margin-bottom: 15px;
-  color: #ff66b2;
-}
-
-.carousel {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: thin;
-  scrollbar-color: #ff66b2 #111;
-}
-
-.carousel::-webkit-scrollbar {
-  height: 6px;
-}
-
-.carousel::-webkit-scrollbar-thumb {
-  background: #ff66b2;
-  border-radius: 4px;
+/* ==== Anime Grid ==== */
+.anime-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
 }
 
 .anime-card {
-  flex: 0 0 160px;
-  background: #1a1a1a;
-  border-radius: 8px;
-  padding: 6px;
-  scroll-snap-align: start;
+  background: #141414;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .anime-card:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 15px rgba(255, 105, 180, 0.4);
+  box-shadow: 0 0 20px rgba(255, 105, 180, 0.4);
 }
 
 .anime-card img {
   width: 100%;
-  border-radius: 6px;
+  height: 250px;
   object-fit: cover;
 }
 
-.anime-card .info {
-  margin-top: 5px;
-}
-
 .anime-card h3 {
-  font-size: 0.85em;
+  font-size: 1rem;
+  padding: 10px;
+}
+
+.anime-card p {
+  font-size: 0.85rem;
+  padding: 0 10px 10px;
+  color: #ccc;
+}
+
+/* ==== Footer ==== */
+footer.copyright {
+  background-color: #0d0d0d;
   color: #fff;
-  line-height: 1.2em;
-}
-
-.anime-card .score {
-  font-size: 0.8em;
-  color: #ff85c1;
-  margin-top: 2px;
-}
-
-.favorite-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  background: rgba(0,0,0,0.6);
-  border-radius: 50%;
-  width: 26px;
-  height: 26px;
-  color: #ff66b2;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.favorite-btn:hover {
-  transform: scale(1.2);
-}
-
-/* ===== MODALS ===== */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 200;
-}
-
-.modal.hidden {
-  display: none;
-}
-
-.modal-content {
-  background: #111;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 700px;
-  max-height: 90vh;
-  overflow-y: auto;
-  position: relative;
-  box-shadow: 0 0 15px rgba(255,105,180,0.3);
-}
-
-.modal-content.small {
-  max-width: 400px;
-}
-
-.modal-close {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  background: none;
-  color: #ff66b2;
-  font-size: 1.3em;
-  cursor: pointer;
-}
-
-.modal-body img {
-  width: 100%;
-  border-radius: 8px;
-}
-
-.modal-body h2 {
-  margin: 10px 0;
-  color: #ff66b2;
-}
-
-.modal-body p {
-  color: #ddd;
-  line-height: 1.4em;
-}
-
-/* ===== GENRES ===== */
-.genre-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.genre-item {
-  background: #1a1a1a;
-  color: #ff66b2;
-  padding: 6px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.genre-item:hover {
-  background: #ff66b2;
-  color: #000;
-}
-
-/* ===== FOOTER ===== */
-.footer {
+  padding: 30px 20px;
   text-align: center;
-  padding: 30px 10px;
-  color: #aaa;
-  font-size: 0.8em;
-  background: #0c0c0c;
-  border-top: 1px solid #222;
+  font-size: 0.9rem;
+  border-top: 1px solid #ff69b4;
 }
 
-/* ===== RESPONSIVE ===== */
+footer.copyright a {
+  color: #ff69b4;
+  text-decoration: none;
+}
+
+footer.copyright a:hover {
+  text-decoration: underline;
+}
+
+/* ==== Responsive Design ==== */
 @media (max-width: 768px) {
-  .hero {
-    flex-direction: column;
-    height: auto;
-    text-align: center;
-  }
-  .hero-inner {
-    max-width: 100%;
-  }
-  .hero-image {
+  nav ul {
     display: none;
   }
-  #globalSearch {
+
+  .search-bar {
     width: 120px;
   }
+
+  .hero h1 {
+    font-size: 2.2rem;
   }
+
+  .hero p {
+    width: 90%;
+  }
+
+  .anime-card img {
+    height: 200px;
+  }
+}
