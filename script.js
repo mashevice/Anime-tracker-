@@ -11,7 +11,7 @@ async function fetchUpcomingEpisodes() {
         container.innerHTML = ''; // Clear loading
         
         data.data.forEach(anime => {
-            if (anime.airing && anime.episodes_aired < anime.episodes) {
+            if (anime.status === "Currently Airing") {
                 const nextEpisode = anime.episodes_aired + 1;
                 const card = document.createElement('div');
                 card.className = 'episode-card';
