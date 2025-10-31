@@ -1,64 +1,183 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AnimeVerse | Discover Your Next Anime</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OtakuVerse — Discover Anime</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Lexend:wght@400;600&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <nav class="navbar">
-      <div class="logo">AnimeVerse</div>
-      <ul class="nav-links">
-        <li><a href="#">Home</a></li>
-        <li><a href="#">Top Rated</a></li>
-        <li><a href="#">Upcoming</a></li>
-        <li><a href="#">Genres</a></li>
-        <li><a href="#">Watchlist</a></li>
-        <li><a href="#">Favourites</a></li>
-      </ul>
-      <div class="nav-icons">
-        <input type="text" id="searchBar" placeholder="Search anime..." />
-        <button id="notifBtn">🔔</button>
-        <button id="loginBtn">👤</button>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="nav-left">
+      <div id="logo" class="brand">OtakuVerse</div>
+
+      <nav class="nav-links" role="navigation" aria-label="Main navigation">
+        <button class="nav-btn active" data-section="home">Home</button>
+        <button class="nav-btn" data-section="top">Top Rated</button>
+        <button class="nav-btn" data-section="airing">Airing</button>
+        <button class="nav-btn" data-section="upcoming">Upcoming</button>
+        <button class="nav-btn" data-section="genres">Genres</button>
+      </nav>
+    </div>
+
+    <div class="nav-right">
+      <div class="search-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M21 21l-4.35-4.35m1.35-5.65A7 7 0 1 1 3 10a7 7 0 0 1 15 0z"></path></svg>
+        <input id="searchInput" class="search-input" placeholder="Search anime (type 3+ chars)" aria-label="Search anime">
+        <div id="searchResults" class="search-results hidden" role="listbox"></div>
       </div>
-    </nav>
+
+      <button id="notifBtn" class="icon-btn" title="Notifications">🔔<span id="notifBadge" class="badge hidden">0</span></button>
+
+      <!-- user 3-dot menu -->
+      <div class="user-menu">
+        <button id="userBtn" class="icon-btn" aria-haspopup="true" aria-expanded="false" title="User menu">⋯</button>
+        <div id="userDropdown" class="dropdown hidden" role="menu" aria-hidden="true">
+          <div id="userDisplay" class="user-display">Not signed in</div>
+          <button class="dropdown-item" id="openLogin">Sign in</button>
+          <button class="dropdown-item" id="openSettings">Settings</button>
+          <button class="dropdown-item" id="openFav">My Favorites</button>
+          <button class="dropdown-item" id="openWatch">My Watchlist</button>
+          <button class="dropdown-item" id="openReviews">Reviews</button>
+          <button class="dropdown-item" id="logoutBtn" style="display:none">Sign out</button>
+        </div>
+      </div>
+    </div>
   </header>
 
-  <main>
-    <section class="hero">
-      <h1>Welcome to AnimeVerse</h1>
-      <p>Explore, track, and discover the best anime — all in one place.</p>
+  <!-- HERO / FEATURED -->
+  <main id="main">
+    <section id="hero" class="hero">
+      <div class="hero-left">
+        <h1 id="heroTitle">Discover anime you’ll love</h1>
+        <p id="heroSub">Hand-picked featured picks, live airing, upcoming releases and top-rated anime.</p>
+        <div class="hero-ctas">
+          <button id="ctaTop" class="btn primary">Explore Top</button>
+          <button id="ctaAiring" class="btn outline">Airing Now</button>
+        </div>
+      </div>
+      <div id="heroImage" class="hero-image" aria-hidden="true"></div>
     </section>
 
-    <section class="anime-section" id="top-anime">
-      <h2>🔥 Top Rated Anime</h2>
-      <div class="anime-container" id="topRated"></div>
+    <!-- Sections: Mixed layout (carousel + grid) -->
+    <section id="section-top" class="section">
+      <h2>Top Rated</h2>
+      <div class="carousel" id="carousel-top" tabindex="0" aria-label="Top Rated anime"></div>
     </section>
 
-    <section class="anime-section" id="upcoming-anime">
-      <h2>🚀 Upcoming Anime</h2>
-      <div class="anime-container" id="upcoming"></div>
+    <section id="section-airing" class="section">
+      <h2>Airing Now</h2>
+      <div class="carousel" id="carousel-airing" tabindex="0" aria-label="Airing anime"></div>
+    </section>
+
+    <section id="section-upcoming" class="section">
+      <h2>Upcoming</h2>
+      <div class="carousel" id="carousel-upcoming" tabindex="0" aria-label="Upcoming anime"></div>
+    </section>
+
+    <section id="section-genres" class="section">
+      <h2>Browse by Genre</h2>
+      <div id="genreList" class="genre-list"></div>
+      <div id="genreResults" class="anime-grid"></div>
+    </section>
+
+    <!-- Hidden sections for watchlist/favs -->
+    <section id="section-watchlist" class="section hidden-section">
+      <h2>Your Watchlist</h2>
+      <div id="watchlistGrid" class="anime-grid"></div>
+    </section>
+
+    <section id="section-favorites" class="section hidden-section">
+      <h2>Your Favorites</h2>
+      <div id="favoritesGrid" class="anime-grid"></div>
     </section>
   </main>
 
-  <footer class="copyright">
-    <p>© 2025 AnimeVerse. All Rights Reserved.</p>
+  <!-- DETAILS MODAL -->
+  <div id="detailModal" class="modal hidden" role="dialog" aria-hidden="true">
+    <div class="modal-panel" role="document">
+      <button id="closeDetail" class="modal-close" aria-label="Close">✕</button>
+      <div class="detail-inner">
+        <img id="detailImage" src="" alt="Poster" />
+        <div class="detail-body">
+          <h2 id="detailTitle"></h2>
+          <div class="meta">
+            <span id="detailScore" class="tag"></span>
+            <span id="detailEpisodes" class="tag"></span>
+            <span id="detailAge" class="tag"></span>
+          </div>
+          <p id="detailSynopsis"></p>
+          <p><strong>Genres:</strong> <span id="detailGenres"></span></p>
+          <div class="detail-actions">
+            <button id="favBtn" class="btn outline">❤ Favorite</button>
+            <button id="watchBtn" class="btn primary">+ Watchlist</button>
+            <button id="malLink" class="btn ghost" target="_blank">View on MAL</button>
+          </div>
+          <div class="rating-row">
+            <label>Your rating:</label>
+            <select id="userRating">
+              <option value="">Rate</option>
+              <option>10</option><option>9</option><option>8</option><option>7</option><option>6</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option>
+            </select>
+            <button id="submitRating" class="btn small">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN MODAL (local demo) -->
+  <div id="loginModal" class="modal hidden" role="dialog" aria-hidden="true">
+    <div class="modal-panel small">
+      <button id="closeLogin" class="modal-close">✕</button>
+      <div class="modal-body">
+        <h3>Sign in (demo)</h3>
+        <input id="loginName" placeholder="Display name" />
+        <div style="margin-top:12px">
+          <button id="loginSubmit" class="btn primary">Sign in</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="modal hidden" role="dialog" aria-hidden="true">
+    <div class="modal-panel small">
+      <button id="closeSettings" class="modal-close">✕</button>
+      <div class="modal-body">
+        <h3>Settings</h3>
+        <label>Theme</label>
+        <select id="themeSelect">
+          <option value="dark">Dark (default)</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAVORITES / WATCHLIST MODALS -->
+  <div id="favModal" class="modal hidden"><div class="modal-panel"><button class="modal-close" id="closeFav">✕</button><div id="favList" class="anime-grid"></div></div></div>
+  <div id="watchModal" class="modal hidden"><div class="modal-panel"><button class="modal-close" id="closeWatch">✕</button><div id="watchList" class="anime-grid"></div></div></div>
+
+  <!-- FOOTER WITH LEGAL -->
+  <footer class="site-footer">
+    <p>© 2025 OtakuVerse. All rights reserved.</p>
     <p>
-      Disclaimer: This website does not host or stream any anime content. All images, titles, and information are used for informational and educational purposes only.
-      We do not claim ownership of any copyrighted material. All rights belong to their respective owners.
+      OtakuVerse is an independent fan-made project and is not affiliated with or endorsed by MyAnimeList, Crunchyroll, Funimation, Netflix, or any anime studios.
+      All anime data and images are sourced from the public Jikan API for informational purposes only.
     </p>
     <p>
-      Under Section 107 of the Copyright Act of 1976, allowance is made for “fair use” for purposes such as criticism, comment, news reporting, teaching, scholarship, or research. 
-      Fair use is a use permitted by copyright statute that might otherwise be infringing.
-    </p>
-    <p>
-      If you believe your copyrighted work has been used in a way that constitutes copyright infringement, please contact us at 
-      <a href="mailto:support@animeverse.com">support@animeverse.com</a>.
+      Under Section 107 of the Copyright Act of 1976, allowance is made for “fair use” for purposes such as criticism, comment, news reporting, teaching, scholarship, or research.
+      If you are a rights holder and believe your content appears here improperly, contact <a href="mailto:support@otakuverse.example">support@otakuverse.example</a>.
     </p>
   </footer>
 
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
-</html>
+        </html>
