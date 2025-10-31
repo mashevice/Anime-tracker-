@@ -2,7 +2,37 @@
 // Put index.html, style.css, script.js together in same folder.
 
 const API = 'https://api.jikan.moe/v4';
+const API = 'https://api.jikan.moe/v4';
+const carouselTop = document.getElementById('carousel-top');
 
+async function loadTopAnime() {
+  try {
+    const res = await fetch(`${API}/top/anime`);
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    const data = await res.json();
+
+    console.log("Fetched data:", data); // Debug log
+    if (!data.data || data.data.length === 0) {
+      carouselTop.innerHTML = "<p>No anime found.</p>";
+      return;
+    }
+
+    carouselTop.innerHTML = data.data
+      .slice(0, 10)
+      .map(a => `
+        <div class="anime-card">
+          <img src="${a.images.jpg.image_url}" alt="${a.title}">
+          <h4>${a.title}</h4>
+        </div>
+      `)
+      .join('');
+  } catch (err) {
+    console.error("Failed to load top anime:", err);
+    carouselTop.innerHTML = `<p style="color:red;">Error loading anime: ${err.message}</p>`;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", loadTopAnime);
 // helpers
 const $ = id => document.getElementById(id);
 const $$ = sel => document.querySelectorAll(sel);
