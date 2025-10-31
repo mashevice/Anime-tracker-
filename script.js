@@ -135,14 +135,13 @@ async function loadAiring(){
 }
 
 // load upcoming
-async function fetchUpcomingAnime() {
-  try {
-    const response = await fetch('https://api.jikan.moe/v4/seasons/upcoming');
-    const data = await response.json();
-    displayAnime(data.data, "upcoming-container");
-  } catch (error) {
-    console.error("Failed to load upcoming anime:", error);
-  }
+async function loadUpcoming(){
+  carouselUpcoming.innerHTML = 'Loading...';
+  try{
+    const json = await fetchJson('seasons/upcoming');
+    carouselUpcoming.innerHTML = '';
+    (json.data||[]).slice(0,12).forEach(a=> carouselUpcoming.appendChild(makeCard(a)));
+  }catch(err){ carouselUpcoming.innerHTML = '<div class="err">Failed to load upcoming</div>'; console.error(err); }
 }
 
 // load genres
@@ -271,34 +270,7 @@ $$('.nav-btn').forEach(btn=>{
     }
   });
 });
-const navLinks = document.querySelector('.nav-links');
-let isDown = false;
-let startX;
-let scrollLeft;
 
-navLinks.addEventListener('mousedown', (e) => {
-  isDown = true;
-  startX = e.pageX - navLinks.offsetLeft;
-  scrollLeft = navLinks.scrollLeft;
-});
-navLinks.addEventListener('mouseleave', () => { isDown = false; });
-navLinks.addEventListener('mouseup', () => { isDown = false; });
-navLinks.addEventListener('mousemove', (e) => {
-  if(!isDown) return;
-  e.preventDefault();
-  const x = e.pageX - navLinks.offsetLeft;
-  const walk = (x - startX) * 2; // scroll-fast multiplier
-  navLinks.scrollLeft = scrollLeft - walk;
-});
-navLinks.addEventListener('touchstart', (e) => {
-  startX = e.touches[0].pageX - navLinks.offsetLeft;
-  scrollLeft = navLinks.scrollLeft;
-});
-navLinks.addEventListener('touchmove', (e) => {
-  const x = e.touches[0].pageX - navLinks.offsetLeft;
-  const walk = (x - startX) * 2;
-  navLinks.scrollLeft = scrollLeft - walk;
-});
 // favorites/watchlist modal close
 closeFav?.addEventListener('click', ()=> favModal.classList.add('hidden'));
 closeWatch?.addEventListener('click', ()=> watchModal.classList.add('hidden'));
@@ -315,11 +287,3 @@ async function init(){
 }
 // start
 init().catch(console.error);
-// Airing anime
-https://api.jikan.moe/v4/seasons/now
-
-// Upcoming anime
-https://api.jikan.moe/v4/seasons/upcoming
-
-// Top anime
-https://api.jikan.moe/v4/top/anime
