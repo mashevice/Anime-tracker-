@@ -1,115 +1,62 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Anime Finder — Modern</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AnimeVerse | Discover Your Next Anime</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- NAVBAR -->
-  <header class="navbar" role="navigation">
-    <div class="nav-left">
-      <div class="brand" id="brand">Anime Finder</div>
-      <nav class="nav-links" aria-label="Main">
-        <button class="nav-btn active" data-view="home">Home</button>
-        <button class="nav-btn" data-view="top">Top</button>
-        <button class="nav-btn" data-view="airing">Airing</button>
-        <button class="nav-btn" data-view="upcoming">Upcoming</button>
-        <button class="nav-btn" data-view="genres">Genres</button>
-      </nav>
-    </div>
-
-    <div class="nav-right">
-      <input id="globalSearch" placeholder="Search anime (type 3+ chars)..." aria-label="Search anime"/>
-      <button id="themeToggle" title="Toggle theme">🌓</button>
-
-      <!-- three-dot user menu -->
-      <div class="user-menu">
-        <button id="userBtn" aria-haspopup="true" aria-expanded="false">⋯</button>
-        <div id="userDropdown" class="dropdown hidden" role="menu" aria-hidden="true">
-          <div id="userNameDisplay">Not signed in</div>
-          <button id="openLogin">Sign in</button>
-          <button id="viewFavorites">My Favorites</button>
-          <button id="logout" class="hidden">Sign out</button>
-        </div>
+  <header>
+    <nav class="navbar">
+      <div class="logo">AnimeVerse</div>
+      <ul class="nav-links">
+        <li><a href="#">Home</a></li>
+        <li><a href="#">Top Rated</a></li>
+        <li><a href="#">Upcoming</a></li>
+        <li><a href="#">Genres</a></li>
+        <li><a href="#">Watchlist</a></li>
+        <li><a href="#">Favourites</a></li>
+      </ul>
+      <div class="nav-icons">
+        <input type="text" id="searchBar" placeholder="Search anime..." />
+        <button id="notifBtn">🔔</button>
+        <button id="loginBtn">👤</button>
       </div>
-    </div>
+    </nav>
   </header>
 
-  <!-- HERO -->
-  <main id="app">
-    <section id="hero" class="hero">
-      <div class="hero-inner">
-        <h1 id="hero-title">Discover Anime — Better than MAL</h1>
-        <p id="hero-sub">Top picks, airing now, and upcoming — fresh data every load.</p>
-        <div class="hero-ctas">
-          <button id="hero-explore" class="btn primary">Explore Top</button>
-          <button id="hero-airing" class="btn outline">Airing Now</button>
-        </div>
-      </div>
-      <div id="hero-image" class="hero-image" role="img" aria-label="Featured anime"></div>
+  <main>
+    <section class="hero">
+      <h1>Welcome to AnimeVerse</h1>
+      <p>Explore, track, and discover the best anime — all in one place.</p>
     </section>
 
-    <!-- SECTIONS -->
-    <section class="section" id="section-top">
-      <h2>Top Anime</h2>
-      <div class="carousel" id="carousel-top" aria-live="polite">Loading...</div>
+    <section class="anime-section" id="top-anime">
+      <h2>🔥 Top Rated Anime</h2>
+      <div class="anime-container" id="topRated"></div>
     </section>
 
-    <section class="section" id="section-airing">
-      <h2>Airing Now</h2>
-      <div class="carousel" id="carousel-airing">Loading...</div>
-    </section>
-
-    <section class="section" id="section-upcoming">
-      <h2>Upcoming</h2>
-      <div class="carousel" id="carousel-upcoming">Loading...</div>
-    </section>
-
-    <section class="section" id="section-genres">
-      <h2>Genres</h2>
-      <div id="genre-list" class="genre-list">Loading genres...</div>
-      <div class="carousel" id="carousel-genre-results"></div>
+    <section class="anime-section" id="upcoming-anime">
+      <h2>🚀 Upcoming Anime</h2>
+      <div class="anime-container" id="upcoming"></div>
     </section>
   </main>
 
-  <!-- DETAILS MODAL -->
-  <div id="detailModal" class="modal hidden" role="dialog" aria-hidden="true">
-    <div class="modal-content" role="document">
-      <button id="closeModal" class="modal-close" aria-label="Close">✕</button>
-      <div id="modal-body" class="modal-body">Loading...</div>
-    </div>
-  </div>
-
-  <!-- LOGIN MODAL (local only) -->
-  <div id="loginModal" class="modal hidden" role="dialog" aria-hidden="true">
-    <div class="modal-content small" role="document">
-      <button id="closeLogin" class="modal-close" aria-label="Close">✕</button>
-      <div class="modal-body">
-        <h3>Sign in (local demo)</h3>
-        <p>Enter a display name to simulate login (stored locally).</p>
-        <input id="loginName" placeholder="Your name" />
-        <div style="margin-top:10px">
-          <button id="loginSubmit" class="btn primary">Sign in</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- FAVORITES LIST MODAL -->
-  <div id="favModal" class="modal hidden" role="dialog" aria-hidden="true">
-    <div class="modal-content" role="document">
-      <button class="modal-close" id="closeFav">✕</button>
-      <div class="modal-body">
-        <h3>Your Favorites</h3>
-        <div id="favList">No favorites yet.</div>
-      </div>
-    </div>
-  </div>
-
-  <footer class="footer">
-    <small>Data from Jikan API • UI inspired by modern streaming services</small>
+  <footer class="copyright">
+    <p>© 2025 AnimeVerse. All Rights Reserved.</p>
+    <p>
+      Disclaimer: This website does not host or stream any anime content. All images, titles, and information are used for informational and educational purposes only.
+      We do not claim ownership of any copyrighted material. All rights belong to their respective owners.
+    </p>
+    <p>
+      Under Section 107 of the Copyright Act of 1976, allowance is made for “fair use” for purposes such as criticism, comment, news reporting, teaching, scholarship, or research. 
+      Fair use is a use permitted by copyright statute that might otherwise be infringing.
+    </p>
+    <p>
+      If you believe your copyrighted work has been used in a way that constitutes copyright infringement, please contact us at 
+      <a href="mailto:support@animeverse.com">support@animeverse.com</a>.
+    </p>
   </footer>
 
   <script src="script.js"></script>
