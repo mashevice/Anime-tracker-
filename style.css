@@ -21,16 +21,7 @@ button{font-family:inherit;cursor:pointer}
 .nav-links{display:flex;gap:10px}
 .nav-btn{background:transparent;border:0;color:var(--white);padding:8px 10px;border-radius:8px;font-weight:600;transition:all .18s}
 .nav-btn.active,.nav-btn:hover{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#0b0410;transform:translateY(-1px)}
-.nav-links {
-  display: flex;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  white-space: nowrap;
-}
 
-.nav-links::-webkit-scrollbar {
-  display: none; /* hide scrollbar */
-}
 /* NAV RIGHT */
 .nav-right{display:flex;align-items:center;gap:8px}
 .search-wrapper{position:relative;display:flex;align-items:center}
@@ -105,4 +96,4 @@ button{font-family:inherit;cursor:pointer}
   .detail-inner img{width:180px;height:260px}
   .modal{align-items:flex-end}
   .modal-sheet{border-radius:12px 12px 0 0;padding:10px}
-          }
+}
