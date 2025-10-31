@@ -1,99 +1,183 @@
-:root{
-  --bg: #0b0620;
-  --panel: #12091e;
-  --card: #151026;
-  --muted: #cfc6d9;
-  --accent: #ff4db8;
-  --accent-2: #ff85d2;
-  --glass: rgba(255,255,255,0.04);
-  --white: #ffffff;
-}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OtakuVerse — Discover Anime</title>
 
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:var(--bg);color:var(--white);-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
-a{color:var(--accent)}
-button{font-family:inherit;cursor:pointer}
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Lexend:wght@500;600&display=swap" rel="stylesheet">
 
-/* NAVBAR */
-.navbar{position:fixed;top:0;left:0;right:0;height:72px;background:linear-gradient(180deg,rgba(0,0,0,0.65), rgba(0,0,0,0.3));display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:200;border-bottom:1px solid rgba(255,77,184,0.06)}
-.nav-left{display:flex;align-items:center;gap:14px}
-.brand{font-weight:700;color:var(--accent);font-size:1.2rem}
-.nav-links{display:flex;gap:10px}
-.nav-btn{background:transparent;border:0;color:var(--white);padding:8px 10px;border-radius:8px;font-weight:600;transition:all .18s}
-.nav-btn.active,.nav-btn:hover{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#0b0410;transform:translateY(-1px)}
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
 
-/* NAV RIGHT */
-.nav-right{display:flex;align-items:center;gap:8px}
-.search-wrapper{position:relative;display:flex;align-items:center}
-.search-input{width:240px;padding:9px 12px 9px 36px;border-radius:999px;border:1px solid rgba(255,255,255,0.04);background:var(--panel);color:var(--white);outline:none;transition:box-shadow .18s}
-.search-input:focus{box-shadow:0 10px 30px rgba(255,77,184,0.06);border-color:var(--accent)}
-.search-icon{position:absolute;left:10px;color:var(--muted);pointer-events:none}
-.search-results{position:absolute;top:44px;left:0;width:360px;background:var(--panel);border-radius:8px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,0.6);max-height:360px;overflow:auto}
-.icon-btn{background:transparent;border:0;color:var(--white);padding:8px;border-radius:8px;font-size:1.05rem}
-.badge{background:var(--accent);color:#10030b;border-radius:999px;padding:2px 8px;font-size:12px;margin-left:6px;display:inline-block}
+  <!-- NAVBAR -->
+  <header class="navbar" role="banner">
+    <div class="nav-left">
+      <div id="logo" class="brand">OtakuVerse</div>
 
-/* HERO */
-.hero{margin-top:84px;display:flex;align-items:center;gap:20px;padding:36px 6vw;background:linear-gradient(180deg,rgba(6,2,20,0.6),rgba(6,2,20,0.95));min-height:48vh}
-.hero-left{max-width:56%}
-.hero h1{font-family:Lexend,Inter;font-size:36px;color:var(--accent);margin:0 0 10px}
-.hero p{color:var(--muted);margin:0 0 18px}
-.hero-ctas{display:flex;gap:10px}
-.btn{padding:10px 14px;border-radius:10px;border:0;font-weight:700}
-.btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#08020a}
-.btn.outline{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--white)}
-.hero-image{flex:1;height:320px;border-radius:12px;background-size:cover;background-position:center;filter:brightness(.82);box-shadow:0 18px 40px rgba(0,0,0,0.6)}
+      <nav class="nav-links" role="navigation" aria-label="Main navigation">
+        <button class="nav-btn active" data-section="home">Home</button>
+        <button class="nav-btn" data-section="top">Top Rated</button>
+        <button class="nav-btn" data-section="airing">Airing</button>
+        <button class="nav-btn" data-section="upcoming">Upcoming</button>
+        <button class="nav-btn" data-section="genres">Genres</button>
+      </nav>
+    </div>
 
-/* SECTIONS */
-.section{padding:28px 6vw}
-.section h2{color:var(--accent);font-size:1.3rem;margin:0 0 12px}
+    <div class="nav-right">
+      <div class="search-wrapper" id="searchWrap">
+        <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path fill="currentColor" d="M21 21l-4.35-4.35m1.35-5.65A7 7 0 1 1 3 10a7 7 0 0 1 15 0z"></path>
+        </svg>
+        <input id="searchInput" class="search-input" placeholder="Search anime (3+ chars)" aria-label="Search anime">
+        <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Search results"></div>
+      </div>
 
-/* CAROUSEL */
-.carousel{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
-.carousel::-webkit-scrollbar{height:8px}
-.carousel::-webkit-scrollbar-thumb{background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:20px}
-.card{flex:0 0 180px;background:var(--card);border-radius:10px;overflow:hidden;scroll-snap-align:start;position:relative;cursor:pointer;transition:transform .22s,box-shadow .22s}
-.card:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(0,0,0,0.6)}
-.card img{width:100%;height:250px;object-fit:cover;display:block}
-.card .card-body{padding:10px}
-.card .title{font-weight:700;font-size:0.95rem;margin-bottom:6px}
-.card .meta{font-size:0.85rem;color:var(--muted)}
-.favorite-btn{position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.45);border-radius:999px;padding:6px;color:var(--accent);cursor:pointer;backdrop-filter:blur(4px)}
+      <button id="notifBtn" class="icon-btn" title="Notifications" aria-label="Notifications">🔔<span id="notifBadge" class="badge hidden">0</span></button>
 
-/* GRID */
-.anime-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
+      <div class="user-menu">
+        <button id="userBtn" class="icon-btn" aria-haspopup="true" aria-expanded="false" title="User menu">⋯</button>
+        <div id="userDropdown" class="dropdown hidden" role="menu" aria-hidden="true">
+          <div id="userDisplay" class="user-display">Not signed in</div>
+          <button class="dropdown-item" id="openLogin">Sign in</button>
+          <button class="dropdown-item" id="openSettings">Settings</button>
+          <button class="dropdown-item" id="openFav">My Favorites</button>
+          <button class="dropdown-item" id="openWatch">My Watchlist</button>
+          <button class="dropdown-item" id="openReviews">Reviews</button>
+          <button class="dropdown-item" id="logoutBtn" style="display:none">Sign out</button>
+        </div>
+      </div>
+    </div>
+  </header>
 
-/* GENRES */
-.genre-list{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.genre-item{padding:8px 12px;border-radius:999px;background:var(--panel);border:1px solid rgba(255,255,255,0.03);cursor:pointer;color:var(--muted)}
+  <!-- HERO -->
+  <main id="main">
+    <section id="hero" class="hero">
+      <div class="hero-left">
+        <h1 id="heroTitle">Discover anime you'll love</h1>
+        <p id="heroSub">Featured picks, live airing, upcoming releases and top-rated anime — all in one place.</p>
+        <div class="hero-ctas">
+          <button id="ctaTop" class="btn primary">Explore Top</button>
+          <button id="ctaAiring" class="btn outline">Airing Now</button>
+        </div>
+      </div>
+      <div id="heroImage" class="hero-image" aria-hidden="true"></div>
+    </section>
 
-/* MODALS - bottom sheet on mobile, centered on desktop */
-.modal{position:fixed;inset:0;background:rgba(4,2,10,0.65);display:flex;align-items:flex-end;justify-content:center;padding:10px;z-index:400}
-.modal.hidden{display:none}
-.modal-sheet{width:100%;max-width:980px;background:linear-gradient(180deg,var(--panel),#0b0712);border-radius:12px 12px 0 0;padding:12px;box-shadow:0 30px 60px rgba(0,0,0,0.7)}
-.modal-panel{background:linear-gradient(180deg,var(--panel),#0b0712);border-radius:12px;padding:18px;width:min(880px,96%);max-height:90vh;overflow:auto;position:relative}
-.modal-panel.small{width:420px}
-.modal-close{position:absolute;right:12px;top:10px;background:transparent;border:0;font-size:20px;color:var(--accent);cursor:pointer}
-.detail-inner{display:flex;gap:12px;align-items:flex-start}
-.detail-inner img{width:160px;height:230px;object-fit:cover;border-radius:8px}
-.detail-body{flex:1}
-.meta{display:flex;gap:8px;margin:8px 0 12px}
-.tag{background:var(--glass);padding:6px 8px;border-radius:8px;color:var(--muted);font-weight:700}
-.detail-actions{display:flex;gap:8px;margin-top:12px}
-.rating-row{display:flex;gap:8px;align-items:center;margin-top:12px}
+    <!-- Top Rated -->
+    <section id="section-top" class="section" aria-label="Top Rated">
+      <h2>Top Rated</h2>
+      <div class="carousel" id="carousel-top" tabindex="0" aria-live="polite"></div>
+    </section>
 
-/* FOOTER */
-.site-footer{padding:26px 6vw;background:linear-gradient(180deg,#07020b,#04020a);color:var(--muted);border-top:1px solid rgba(255,77,184,0.06);text-align:center}
-.site-footer a{color:var(--accent)}
+    <!-- Airing -->
+    <section id="section-airing" class="section" aria-label="Airing Now">
+      <h2>Airing Now</h2>
+      <div class="carousel" id="carousel-airing" tabindex="0" aria-live="polite"></div>
+    </section>
 
-/* small screens adjustments (bottom-sheet style) */
-@media(max-width:700px){
-  .hero{flex-direction:column;padding:18px 6vw}
-  .hero-left{max-width:100%}
-  .hero-image{width:100%;height:180px}
-  .search-input{width:140px}
-  .card{flex:0 0 140px}
-  .detail-inner{flex-direction:column;align-items:center}
-  .detail-inner img{width:180px;height:260px}
-  .modal{align-items:flex-end}
-  .modal-sheet{border-radius:12px 12px 0 0;padding:10px}
-}
+    <!-- Upcoming -->
+    <section id="section-upcoming" class="section" aria-label="Upcoming">
+      <h2>Upcoming</h2>
+      <div class="carousel" id="carousel-upcoming" tabindex="0" aria-live="polite"></div>
+    </section>
+
+    <!-- Genres -->
+    <section id="section-genres" class="section" aria-label="Genres">
+      <h2>Browse by Genre</h2>
+      <div id="genreList" class="genre-list"></div>
+      <div id="genreResults" class="anime-grid"></div>
+    </section>
+
+    <!-- Watchlist & Favorites hidden sections -->
+    <section id="section-watchlist" class="section hidden-section">
+      <h2>Your Watchlist</h2>
+      <div id="watchlistGrid" class="anime-grid"></div>
+    </section>
+
+    <section id="section-favorites" class="section hidden-section">
+      <h2>Your Favorites</h2>
+      <div id="favoritesGrid" class="anime-grid"></div>
+    </section>
+  </main>
+
+  <!-- DETAILS BOTTOM SHEET / MODAL -->
+  <div id="detailModal" class="modal hidden" role="dialog" aria-hidden="true">
+    <div class="modal-sheet" role="document">
+      <button id="closeDetail" class="modal-close" aria-label="Close">✕</button>
+      <div class="detail-inner">
+        <img id="detailImage" src="" alt="Poster" />
+        <div class="detail-body">
+          <h2 id="detailTitle"></h2>
+          <div class="meta">
+            <span id="detailScore" class="tag"></span>
+            <span id="detailEpisodes" class="tag"></span>
+            <span id="detailAge" class="tag"></span>
+          </div>
+          <p id="detailSynopsis"></p>
+          <p><strong>Genres:</strong> <span id="detailGenres"></span></p>
+
+          <div class="detail-actions">
+            <button id="favBtn" class="btn outline">❤ Favorite</button>
+            <button id="watchBtn" class="btn primary">+ Watchlist</button>
+            <a id="malLink" class="btn ghost" target="_blank" rel="noopener">View on MAL</a>
+          </div>
+
+          <div class="rating-row">
+            <label>Your rating:</label>
+            <select id="userRating">
+              <option value="">Rate</option><option>10</option><option>9</option><option>8</option><option>7</option><option>6</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option>
+            </select>
+            <button id="submitRating" class="btn small">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN MODAL (local demo) -->
+  <div id="loginModal" class="modal hidden" role="dialog" aria-hidden="true">
+    <div class="modal-panel small">
+      <button id="closeLogin" class="modal-close">✕</button>
+      <div class="modal-body">
+        <h3>Sign in (demo)</h3>
+        <input id="loginName" placeholder="Display name" />
+        <div style="margin-top:12px"><button id="loginSubmit" class="btn primary">Sign in</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settingsModal" class="modal hidden" role="dialog" aria-hidden="true">
+    <div class="modal-panel small">
+      <button id="closeSettings" class="modal-close">✕</button>
+      <div class="modal-body">
+        <h3>Settings</h3>
+        <label>Theme</label>
+        <select id="themeSelect"><option value="dark">Dark</option><option value="light">Light</option></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAVORITES / WATCHLIST MODALS -->
+  <div id="favModal" class="modal hidden"><div class="modal-panel"><button class="modal-close" id="closeFav">✕</button><div id="favList" class="anime-grid"></div></div></div>
+  <div id="watchModal" class="modal hidden"><div class="modal-panel"><button class="modal-close" id="closeWatch">✕</button><div id="watchList" class="anime-grid"></div></div></div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <p>© 2025 OtakuVerse. All rights reserved.</p>
+    <p>
+      OtakuVerse is an independent fan-made project and is not affiliated with or endorsed by MyAnimeList, Crunchyroll, Funimation, Netflix, or any anime studios.
+      All anime data and images are sourced from the public Jikan API for informational purposes only.
+    </p>
+    <p>
+      Under Section 107 of the Copyright Act of 1976, allowance is made for “fair use” for purposes such as criticism, comment, news reporting, teaching, scholarship, or research.
+      If you are a rights holder and believe your content appears here improperly, contact <a href="mailto:support@otakuverse.example">support@otakuverse.example</a>.
+    </p>
+  </footer>
+
+<script src="script.js"></script>
+</body>
+          </html>
