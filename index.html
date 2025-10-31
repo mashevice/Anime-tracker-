@@ -6,14 +6,14 @@
   <title>OtakuVerse — Discover Anime</title>
 
   <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Lexend:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Lexend:wght@500;600&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <!-- NAVBAR -->
-  <header class="navbar">
+  <header class="navbar" role="banner">
     <div class="nav-left">
       <div id="logo" class="brand">OtakuVerse</div>
 
@@ -27,15 +27,16 @@
     </div>
 
     <div class="nav-right">
-      <div class="search-wrapper">
-        <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M21 21l-4.35-4.35m1.35-5.65A7 7 0 1 1 3 10a7 7 0 0 1 15 0z"></path></svg>
-        <input id="searchInput" class="search-input" placeholder="Search anime (type 3+ chars)" aria-label="Search anime">
-        <div id="searchResults" class="search-results hidden" role="listbox"></div>
+      <div class="search-wrapper" id="searchWrap">
+        <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path fill="currentColor" d="M21 21l-4.35-4.35m1.35-5.65A7 7 0 1 1 3 10a7 7 0 0 1 15 0z"></path>
+        </svg>
+        <input id="searchInput" class="search-input" placeholder="Search anime (3+ chars)" aria-label="Search anime">
+        <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Search results"></div>
       </div>
 
-      <button id="notifBtn" class="icon-btn" title="Notifications">🔔<span id="notifBadge" class="badge hidden">0</span></button>
+      <button id="notifBtn" class="icon-btn" title="Notifications" aria-label="Notifications">🔔<span id="notifBadge" class="badge hidden">0</span></button>
 
-      <!-- user 3-dot menu -->
       <div class="user-menu">
         <button id="userBtn" class="icon-btn" aria-haspopup="true" aria-expanded="false" title="User menu">⋯</button>
         <div id="userDropdown" class="dropdown hidden" role="menu" aria-hidden="true">
@@ -51,12 +52,12 @@
     </div>
   </header>
 
-  <!-- HERO / FEATURED -->
+  <!-- HERO -->
   <main id="main">
     <section id="hero" class="hero">
       <div class="hero-left">
-        <h1 id="heroTitle">Discover anime you’ll love</h1>
-        <p id="heroSub">Hand-picked featured picks, live airing, upcoming releases and top-rated anime.</p>
+        <h1 id="heroTitle">Discover anime you'll love</h1>
+        <p id="heroSub">Featured picks, live airing, upcoming releases and top-rated anime — all in one place.</p>
         <div class="hero-ctas">
           <button id="ctaTop" class="btn primary">Explore Top</button>
           <button id="ctaAiring" class="btn outline">Airing Now</button>
@@ -65,29 +66,32 @@
       <div id="heroImage" class="hero-image" aria-hidden="true"></div>
     </section>
 
-    <!-- Sections: Mixed layout (carousel + grid) -->
-    <section id="section-top" class="section">
+    <!-- Top Rated -->
+    <section id="section-top" class="section" aria-label="Top Rated">
       <h2>Top Rated</h2>
-      <div class="carousel" id="carousel-top" tabindex="0" aria-label="Top Rated anime"></div>
+      <div class="carousel" id="carousel-top" tabindex="0" aria-live="polite"></div>
     </section>
 
-    <section id="section-airing" class="section">
+    <!-- Airing -->
+    <section id="section-airing" class="section" aria-label="Airing Now">
       <h2>Airing Now</h2>
-      <div class="carousel" id="carousel-airing" tabindex="0" aria-label="Airing anime"></div>
+      <div class="carousel" id="carousel-airing" tabindex="0" aria-live="polite"></div>
     </section>
 
-    <section id="section-upcoming" class="section">
+    <!-- Upcoming -->
+    <section id="section-upcoming" class="section" aria-label="Upcoming">
       <h2>Upcoming</h2>
-      <div class="carousel" id="carousel-upcoming" tabindex="0" aria-label="Upcoming anime"></div>
+      <div class="carousel" id="carousel-upcoming" tabindex="0" aria-live="polite"></div>
     </section>
 
-    <section id="section-genres" class="section">
+    <!-- Genres -->
+    <section id="section-genres" class="section" aria-label="Genres">
       <h2>Browse by Genre</h2>
       <div id="genreList" class="genre-list"></div>
       <div id="genreResults" class="anime-grid"></div>
     </section>
 
-    <!-- Hidden sections for watchlist/favs -->
+    <!-- Watchlist & Favorites hidden sections -->
     <section id="section-watchlist" class="section hidden-section">
       <h2>Your Watchlist</h2>
       <div id="watchlistGrid" class="anime-grid"></div>
@@ -99,9 +103,9 @@
     </section>
   </main>
 
-  <!-- DETAILS MODAL -->
+  <!-- DETAILS BOTTOM SHEET / MODAL -->
   <div id="detailModal" class="modal hidden" role="dialog" aria-hidden="true">
-    <div class="modal-panel" role="document">
+    <div class="modal-sheet" role="document">
       <button id="closeDetail" class="modal-close" aria-label="Close">✕</button>
       <div class="detail-inner">
         <img id="detailImage" src="" alt="Poster" />
@@ -114,16 +118,17 @@
           </div>
           <p id="detailSynopsis"></p>
           <p><strong>Genres:</strong> <span id="detailGenres"></span></p>
+
           <div class="detail-actions">
             <button id="favBtn" class="btn outline">❤ Favorite</button>
             <button id="watchBtn" class="btn primary">+ Watchlist</button>
-            <button id="malLink" class="btn ghost" target="_blank">View on MAL</button>
+            <a id="malLink" class="btn ghost" target="_blank" rel="noopener">View on MAL</a>
           </div>
+
           <div class="rating-row">
             <label>Your rating:</label>
             <select id="userRating">
-              <option value="">Rate</option>
-              <option>10</option><option>9</option><option>8</option><option>7</option><option>6</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option>
+              <option value="">Rate</option><option>10</option><option>9</option><option>8</option><option>7</option><option>6</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option>
             </select>
             <button id="submitRating" class="btn small">Submit</button>
           </div>
@@ -139,24 +144,19 @@
       <div class="modal-body">
         <h3>Sign in (demo)</h3>
         <input id="loginName" placeholder="Display name" />
-        <div style="margin-top:12px">
-          <button id="loginSubmit" class="btn primary">Sign in</button>
-        </div>
+        <div style="margin-top:12px"><button id="loginSubmit" class="btn primary">Sign in</button></div>
       </div>
     </div>
   </div>
 
-  <!-- SETTINGS MODAL -->
+  <!-- SETTINGS -->
   <div id="settingsModal" class="modal hidden" role="dialog" aria-hidden="true">
     <div class="modal-panel small">
       <button id="closeSettings" class="modal-close">✕</button>
       <div class="modal-body">
         <h3>Settings</h3>
         <label>Theme</label>
-        <select id="themeSelect">
-          <option value="dark">Dark (default)</option>
-          <option value="light">Light</option>
-        </select>
+        <select id="themeSelect"><option value="dark">Dark</option><option value="light">Light</option></select>
       </div>
     </div>
   </div>
@@ -165,7 +165,7 @@
   <div id="favModal" class="modal hidden"><div class="modal-panel"><button class="modal-close" id="closeFav">✕</button><div id="favList" class="anime-grid"></div></div></div>
   <div id="watchModal" class="modal hidden"><div class="modal-panel"><button class="modal-close" id="closeWatch">✕</button><div id="watchList" class="anime-grid"></div></div></div>
 
-  <!-- FOOTER WITH LEGAL -->
+  <!-- FOOTER -->
   <footer class="site-footer">
     <p>© 2025 OtakuVerse. All rights reserved.</p>
     <p>
@@ -180,4 +180,4 @@
 
 <script src="script.js"></script>
 </body>
-        </html>
+            </html>
