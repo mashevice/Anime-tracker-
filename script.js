@@ -1,135 +1,251 @@
-const API = 'https://api.jikan.moe/v4';
-const els = {
-  carouselTop: document.getElementById('carousel-top'),
-  carouselAiring: document.getElementById('carousel-airing'),
-  carouselUpcoming: document.getElementById('carousel-upcoming'),
-  heroTitle: document.getElementById('hero-title'),
-  heroImage: document.getElementById('hero-image'),
-  heroExplore: document.getElementById('hero-explore'),
-  heroAiring: document.getElementById('hero-airing'),
-  globalSearch: document.getElementById('globalSearch'),
-  detailModal: document.getElementById('detailModal'),
-  modalBody: document.getElementById('modal-body'),
-  closeModal: document.getElementById('closeModal')
+const API_BASE = 'https://api.jikan.moe/v4';
+
+// ===== ELEMENTS =====
+const carousels = {
+  top: document.getElementById('carousel-top'),
+  airing: document.getElementById('carousel-airing'),
+  upcoming: document.getElementById('carousel-upcoming'),
+  genreResults: document.getElementById('carousel-genre-results')
 };
+const genreList = document.getElementById('genre-list');
+const detailModal = document.getElementById('detailModal');
+const modalBody = document.getElementById('modal-body');
+const closeModal = document.getElementById('closeModal');
+const heroImage = document.getElementById('hero-image');
+const heroExplore = document.getElementById('hero-explore');
+const heroAiring = document.getElementById('hero-airing');
+const globalSearch = document.getElementById('globalSearch');
 
-function el(tag, cls) { const d = document.createElement(tag); if (cls) d.className = cls; return d; }
+// ===== USER & FAVORITES =====
+let currentUser = localStorage.getItem('animeUser') || null;
+let favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
 
-async function fetchJson(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Network error');
-  return res.json();
-}
-
-function makeCard(anime) {
-  const c = el('div','card');
-  c.tabIndex = 0;
-  c.innerHTML = `
-    <img src="${anime.images?.jpg?.image_url || ''}" alt="${anime.title}">
-    <div class="card-body">
-      <div class="card-title">${anime.title}</div>
-      <div class="card-meta">⭐ ${anime.score ?? 'N/A'}</div>
-    </div>`;
-  c.onclick = () => openDetail(anime);
-  c.onkeypress = (e) => { if (e.key === 'Enter') openDetail(anime); };
-  return c;
-}
-
-async function loadTop() {
-  try {
-    els.carouselTop.innerHTML = 'Loading...';
-    const data = await fetchJson(`${API}/top/anime?limit=12`);
-    els.carouselTop.innerHTML = '';
-    data.data.forEach(a => els.carouselTop.appendChild(makeCard(a)));
-    setHero(data.data[0]); // pick first for hero
-  } catch(e) {
-    els.carouselTop.innerHTML = '<div style="color:#f00">Failed to load top</div>';
-    console.error(e);
-  }
-}
-
-async function loadAiring() {
-  try {
-    els.carouselAiring.innerHTML = 'Loading...';
-    const data = await fetchJson(`${API}/seasons/now`);
-    els.carouselAiring.innerHTML = '';
-    data.data.slice(0,12).forEach(a => els.carouselAiring.appendChild(makeCard(a)));
-  } catch(e) {
-    els.carouselAiring.innerHTML = '<div style="color:#f00">Failed to load airing</div>';
-    console.error(e);
-  }
-}
-
-async function loadUpcoming() {
-  try {
-    els.carouselUpcoming.innerHTML = 'Loading...';
-    const data = await fetchJson(`${API}/seasons/upcoming`);
-    els.carouselUpcoming.innerHTML = '';
-    (data.data||[]).slice(0,12).forEach(a => els.carouselUpcoming.appendChild(makeCard(a)));
-  } catch(e) {
-    els.carouselUpcoming.innerHTML = '<div style="color:#f00">Failed to load upcoming</div>';
-    console.error(e);
-  }
-}
-
-function setHero(anime) {
-  if(!anime) return;
-  els.heroTitle.textContent = anime.title;
-  els.heroImage.style.backgroundImage = `url(${anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || ''})`;
-  els.heroSub = anime;
-  els.heroExplore.onclick = () => openDetail(anime);
-  els.heroAiring.onclick = () => loadAiring();
-}
-
-async function openDetail(anime) {
-  // show modal content
-  const html = `
-    <div style="display:flex;gap:16px">
-      <div style="flex:0 0 260px"><img src="${anime.images?.jpg?.image_url}" style="width:100%;border-radius:8px"></div>
-      <div style="flex:1">
-        <h2>${anime.title}</h2>
-        <p><strong>Score:</strong> ${anime.score ?? 'N/A'} • <strong>Type:</strong> ${anime.type ?? 'N/A'}</p>
-        <p style="color:#555">${anime.synopsis ?? 'No description available.'}</p>
-        <p><a href="https://myanimelist.net/anime/${anime.mal_id}" target="_blank" rel="noopener">View on MyAnimeList</a></p>
-      </div>
+// ===== UTILS =====
+function createAnimeCard(anime) {
+  const card = document.createElement('div');
+  card.className = 'anime-card';
+  card.innerHTML = `
+    <div class="favorite-btn" title="Add to favorites">❤</div>
+    <img src="${anime.images?.jpg?.large_image_url}" alt="${anime.title}">
+    <div class="info">
+      <h3>${anime.title}</h3>
+      <div class="score">⭐ ${anime.score ?? 'N/A'}</div>
     </div>
   `;
-  els.modalBody.innerHTML = html;
-  els.detailModal.classList.remove('hidden');
-  els.detailModal.setAttribute('aria-hidden','false');
+  // click on card -> open modal
+  card.addEventListener('click', (e) => {
+    if (e.target.classList.contains('favorite-btn')) return;
+    openDetail(anime);
+  });
+  // favorite button
+  card.querySelector('.favorite-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleFavorite(anime);
+  });
+  return card;
 }
 
-function closeModal() {
-  els.detailModal.classList.add('hidden');
-  els.detailModal.setAttribute('aria-hidden','true');
+function renderCarousel(element, data) {
+  element.innerHTML = '';
+  data.forEach(anime => element.appendChild(createAnimeCard(anime)));
 }
 
-// search
-let searchTimer = null;
-els.globalSearch.addEventListener('input', ()=>{
-  const q=els.globalSearch.value.trim();
-  if(searchTimer) clearTimeout(searchTimer);
-  if(q.length<3) return;
-  searchTimer = setTimeout(()=>searchAnime(q), 400);
-});
-
-async function searchAnime(q){
-  try{
-    const res = await fetchJson(`${API}/anime?q=${encodeURIComponent(q)}&limit=12`);
-    // show results by replacing a section (simple)
-    document.querySelector('#carousel-top').innerHTML = '';
-    (res.data || []).forEach(a => document.querySelector('#carousel-top').appendChild(makeCard(a)));
-    window.scrollTo({top:200, behavior:'smooth'});
-  }catch(e){
-    console.error(e);
+// ===== API CALLS =====
+async function fetchSection(endpoint, element) {
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`);
+    const json = await res.json();
+    renderCarousel(element, json.data);
+  } catch (err) {
+    element.innerHTML = `<p class="error">Error loading data</p>`;
+    console.error(err);
   }
 }
 
-// modal close hooks
-els.closeModal?.addEventListener('click', closeModal);
-els.detailModal?.addEventListener('click', (e)=>{ if(e.target===els.detailModal) closeModal(); });
+async function loadGenres() {
+  try {
+    const res = await fetch(`${API_BASE}/genres/anime`);
+    const json = await res.json();
+    genreList.innerHTML = '';
+    json.data.slice(0, 20).forEach(g => {
+      const item = document.createElement('div');
+      item.className = 'genre-item';
+      item.textContent = g.name;
+      item.addEventListener('click', () => loadByGenre(g.mal_id));
+      genreList.appendChild(item);
+    });
+  } catch (err) {
+    genreList.innerHTML = 'Failed to load genres.';
+  }
+}
 
-// init
-loadTop();
-loadAiring();
-loadUpcoming();
+async function loadByGenre(id) {
+  try {
+    const res = await fetch(`${API_BASE}/anime?genres=${id}&limit=20`);
+    const json = await res.json();
+    renderCarousel(carousels.genreResults, json.data);
+  } catch {
+    carousels.genreResults.innerHTML = 'Failed to load.';
+  }
+}
+
+async function loadHero() {
+  try {
+    const res = await fetch(`${API_BASE}/top/anime?limit=5`);
+    const json = await res.json();
+    const pick = json.data[Math.floor(Math.random() * json.data.length)];
+    heroImage.style.backgroundImage = `url(${pick.images.jpg.large_image_url})`;
+  } catch {
+    heroImage.style.background = '#222';
+  }
+}
+
+// ===== DETAILS MODAL =====
+function openDetail(anime) {
+  modalBody.innerHTML = `
+    <img src="${anime.images.jpg.large_image_url}" alt="${anime.title}">
+    <h2>${anime.title}</h2>
+    <p><strong>Score:</strong> ${anime.score ?? 'N/A'}</p>
+    <p><strong>Episodes:</strong> ${anime.episodes ?? 'Unknown'}</p>
+    <p><strong>Status:</strong> ${anime.status}</p>
+    <p><strong>Synopsis:</strong> ${anime.synopsis ?? 'No synopsis available.'}</p>
+    <a href="https://myanimelist.net/anime/${anime.mal_id}" target="_blank" style="color:#ff66b2;">View on MyAnimeList →</a>
+  `;
+  detailModal.classList.remove('hidden');
+}
+
+closeModal.addEventListener('click', () => detailModal.classList.add('hidden'));
+detailModal.addEventListener('click', e => {
+  if (e.target === detailModal) detailModal.classList.add('hidden');
+});
+
+// ===== FAVORITES =====
+function toggleFavorite(anime) {
+  if (!currentUser) return alert('Sign in to add favorites');
+  if (!favorites[currentUser]) favorites[currentUser] = [];
+  const list = favorites[currentUser];
+  const exists = list.find(a => a.mal_id === anime.mal_id);
+  if (exists) {
+    favorites[currentUser] = list.filter(a => a.mal_id !== anime.mal_id);
+  } else {
+    list.push(anime);
+  }
+  localStorage.setItem('favorites', JSON.stringify(favorites));
+  alert(exists ? 'Removed from favorites' : 'Added to favorites');
+}
+
+function renderFavorites() {
+  const favList = document.getElementById('favList');
+  favList.innerHTML = '';
+  const list = favorites[currentUser] || [];
+  if (!list.length) {
+    favList.textContent = 'No favorites yet.';
+    return;
+  }
+  list.forEach(anime => favList.appendChild(createAnimeCard(anime)));
+}
+
+// ===== LOGIN / LOGOUT =====
+const userDropdown = document.getElementById('userDropdown');
+const userBtn = document.getElementById('userBtn');
+const openLogin = document.getElementById('openLogin');
+const loginModal = document.getElementById('loginModal');
+const closeLogin = document.getElementById('closeLogin');
+const loginSubmit = document.getElementById('loginSubmit');
+const loginName = document.getElementById('loginName');
+const logoutBtn = document.getElementById('logout');
+const userNameDisplay = document.getElementById('userNameDisplay');
+const favModal = document.getElementById('favModal');
+const viewFavorites = document.getElementById('viewFavorites');
+const closeFav = document.getElementById('closeFav');
+
+userBtn.addEventListener('click', () => {
+  userDropdown.classList.toggle('hidden');
+});
+
+openLogin.addEventListener('click', () => {
+  userDropdown.classList.add('hidden');
+  loginModal.classList.remove('hidden');
+});
+
+closeLogin.addEventListener('click', () => loginModal.classList.add('hidden'));
+loginModal.addEventListener('click', e => {
+  if (e.target === loginModal) loginModal.classList.add('hidden');
+});
+
+loginSubmit.addEventListener('click', () => {
+  const name = loginName.value.trim();
+  if (!name) return;
+  currentUser = name;
+  localStorage.setItem('animeUser', name);
+  userNameDisplay.textContent = name;
+  logoutBtn.classList.remove('hidden');
+  loginModal.classList.add('hidden');
+});
+
+logoutBtn.addEventListener('click', () => {
+  localStorage.removeItem('animeUser');
+  currentUser = null;
+  userNameDisplay.textContent = 'Not signed in';
+  logoutBtn.classList.add('hidden');
+});
+
+viewFavorites.addEventListener('click', () => {
+  if (!currentUser) return alert('Sign in first.');
+  favModal.classList.remove('hidden');
+  renderFavorites();
+});
+
+closeFav.addEventListener('click', () => favModal.classList.add('hidden'));
+favModal.addEventListener('click', e => {
+  if (e.target === favModal) favModal.classList.add('hidden');
+});
+
+// ===== SEARCH =====
+let searchTimeout;
+globalSearch.addEventListener('input', (e) => {
+  const query = e.target.value.trim();
+  clearTimeout(searchTimeout);
+  if (query.length < 3) return;
+  searchTimeout = setTimeout(() => searchAnime(query), 400);
+});
+
+async function searchAnime(q) {
+  try {
+    const res = await fetch(`${API_BASE}/anime?q=${encodeURIComponent(q)}&limit=20`);
+    const json = await res.json();
+    renderCarousel(carousels.top, json.data);
+  } catch {
+    carousels.top.innerHTML = 'Search failed.';
+  }
+}
+
+// ===== THEME TOGGLE =====
+const themeToggle = document.getElementById('themeToggle');
+let darkMode = true;
+themeToggle.addEventListener('click', () => {
+  darkMode = !darkMode;
+  document.body.style.backgroundColor = darkMode ? '#0c0c0c' : '#fff';
+  document.body.style.color = darkMode ? '#fff' : '#000';
+});
+
+// ===== HERO BUTTONS =====
+heroExplore.addEventListener('click', () => {
+  document.getElementById('section-top').scrollIntoView({ behavior: 'smooth' });
+});
+heroAiring.addEventListener('click', () => {
+  document.getElementById('section-airing').scrollIntoView({ behavior: 'smooth' });
+});
+
+// ===== INITIAL LOAD =====
+window.addEventListener('load', () => {
+  fetchSection('/top/anime?limit=20', carousels.top);
+  fetchSection('/top/anime?filter=airing&limit=20', carousels.airing);
+  fetchSection('/top/anime?filter=upcoming&limit=20', carousels.upcoming);
+  loadGenres();
+  loadHero();
+  if (currentUser) {
+    userNameDisplay.textContent = currentUser;
+    logoutBtn.classList.remove('hidden');
+  }
+});
