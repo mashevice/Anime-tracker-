@@ -1,319 +1,572 @@
-// OtakuVerse final (responsive + mobile bottom-sheet + live Jikan API)
-// Put index.html, style.css, script.js together in same folder.
+/* script.js — AnimeRat frontend
+   Features:
+   - Jikan API usage (v4): search, top, seasons, anime details
+   - Search suggestions (debounced)
+   - Caching via localStorage (TTL)
+   - Feed rendering (grid/list view toggle)
+   - Modal details with trailer, genres, synopsis
+   - Rating stars UI (client-side until Firebase wired)
+   - 3-dot menu placeholders for MyList / Notify / Share / Report
+   - Load more / pagination
+   - Accessible keyboard support for modal
+   - Graceful fallback and detailed logging
+*/
 
-const API = 'https://api.jikan.moe/v4';
-const API = 'https://api.jikan.moe/v4';
-const carouselTop = document.getElementById('carousel-top');
+/* ==========================
+   CONFIG
+   ========================== */
+const API_BASE = 'https://api.jikan.moe/v4';
+const CACHE_TTL_MS = 1000 * 60 * 30; // 30 minutes
+const PAGE_SIZE = 18; // items per fetch for feed
 
-async function loadTopAnime() {
+/* ==========================
+   HELPERS: caching, DOM, utils
+   ========================== */
+function nowMs(){ return Date.now(); }
+
+function cacheSet(key, value) {
+  const payload = { t: nowMs(), v: value };
+  try { localStorage.setItem('animerat:' + key, JSON.stringify(payload)); } catch (e) { /* ignore storage errors */ }
+}
+function cacheGet(key, maxAge = CACHE_TTL_MS) {
   try {
-    const res = await fetch(`${API}/top/anime`);
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    const raw = localStorage.getItem('animerat:' + key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed.t || !parsed.v) return null;
+    if ((nowMs() - parsed.t) > maxAge) { localStorage.removeItem('animerat:' + key); return null; }
+    return parsed.v;
+  } catch (e) { return null; }
+}
+function cacheRemove(key){ try{ localStorage.removeItem('animerat:' + key); }catch(e){} }
+
+function el(sel){ return document.querySelector(sel); }
+function elAll(sel){ return Array.from(document.querySelectorAll(sel)); }
+function create(tag, attrs={}, children=[]) {
+  const d = document.createElement(tag);
+  for (const k of Object.keys(attrs||{})) {
+    if (k === 'class') d.className = attrs[k];
+    else if (k === 'html') d.innerHTML = attrs[k];
+    else d.setAttribute(k, attrs[k]);
+  }
+  (Array.isArray(children) ? children : [children]).forEach(c => {
+    if (typeof c === 'string') d.appendChild(document.createTextNode(c));
+    else if (c instanceof Node) d.appendChild(c);
+  });
+  return d;
+}
+
+function safeText(s){ return s ? String(s) : ''; }
+
+function toShort(s, n=140){
+  if (!s) return '';
+  s = s.replace(/\s+/g,' ').trim();
+  return s.length > n ? s.slice(0,n).trim() + '...' : s;
+}
+
+/* Debounce */
+function debounce(fn, wait=220){
+  let t;
+  return function(...a){ clearTimeout(t); t = setTimeout(()=>fn.apply(this,a), wait); };
+}
+
+/* Pretty date */
+function timeAgo(ts){
+  if (!ts) return '';
+  const diff = Date.now() - new Date(ts).getTime();
+  const s = Math.floor(diff/1000);
+  if (s < 60) return s + 's ago';
+  const m = Math.floor(s/60);
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m/60);
+  if (h < 24) return h + 'h ago';
+  const d = Math.floor(h/24);
+  return d + 'd ago';
+}
+
+/* Small toast */
+function toast(msg, time=2200){
+  let t = el('#__animerat_toast');
+  if (!t) {
+    t = create('div', { id: '__animerat_toast', class: 'animerat-toast' });
+    Object.assign(t.style, {
+      position: 'fixed', right: '18px', bottom: '18px',
+      background: 'linear-gradient(90deg,#ff63b8,#ff2b9e)',
+      color: '#fff', padding: '10px 14px', borderRadius: '12px', zIndex: 9999, boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+    });
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._h);
+  t._h = setTimeout(()=>{ t.style.opacity = '0'; }, time);
+}
+
+/* ==========================
+   UI REFS
+   ========================== */
+const refs = {
+  searchInput: el('#globalSearch'),
+  searchSuggest: el('#searchSuggest'),
+  feed: el('#feed'),
+  heroCard: el('#hero-card'),
+  loadMoreBtn: el('#loadMoreBtn'),
+  sortSelect: el('#sortSelect'),
+  gridViewBtn: el('#gridView'),
+  listViewBtn: el('#listView'),
+  ctaTop: el('#ctaTop'),
+  ctaAiring: el('#ctaAiring'),
+  navLinks: elAll('.navlink'),
+  genreList: el('#genreList'),
+  modal: el('#modal'),
+  modalBackdrop: el('.modal-backdrop'),
+  modalPanel: el('.modal-panel'),
+  modalClose: el('.modal-close'),
+  modalTitle: el('#modalTitle'),
+  modalCover: el('#modalCover'),
+  modalGenres: el('#modalGenres'),
+  modalSynopsis: el('#modalSynopsis'),
+  modalScore: el('#modalScore'),
+  modalEpisodes: el('#modalEpisodes'),
+  modalStatus: el('#modalStatus'),
+  modalTrailerWrap: el('#modalTrailerWrap'),
+  modalTrailer: el('#modalTrailer'),
+  reviewsList: el('#reviewsList'),
+  reviewText: el('#reviewText'),
+  ratingStars: el('#ratingStars'),
+  submitReviewBtn: el('#submitReview'),
+  yearSpan: el('#year'),
+  signinBtn: el('#signinBtn'),
+  randomBtn: el('#randomBtn'),
+  refreshBtn: el('#refreshBtn'),
+  topFeed: el('#topFeed'),
+  airingFeed: el('#airingFeed'),
+  upcomingFeed: el('#upcomingFeed'),
+  moviesFeed: el('#moviesFeed'),
+  genresFeed: el('#genresFeed'),
+  myListFeed: el('#myListFeed'),
+  main: el('#main'),
+  sidebar: el('#sidebar'),
+};
+
+/* Template nodes */
+const cardTpl = el('#cardTemplate');
+const reviewTpl = el('#reviewTemplate');
+
+/* ==========================
+   APP STATE
+   ========================== */
+const state = {
+  page: 1,
+  feedType: 'home', // home/top/airing/upcoming/movies/genres/mylist
+  query: '',
+  view: 'grid', // or list
+  sort: 'popularity',
+  genreFilter: null,
+  runningFetch: false,
+  lastSearchResults: [],
+  detailsCache: {},
+  feeds: { home: [], top: [], airing: [], upcoming: [], movies: [], genres: [], mylist: [] },
+};
+
+/* ==========================
+   API CALLS (with caching + backoff)
+   ========================== */
+
+async function apiFetch(path, params = {}, useCacheKey = null, ttl = CACHE_TTL_MS) {
+  // Build URL
+  const url = new URL(API_BASE + path);
+  Object.keys(params || {}).forEach(k => { if (params[k] !== undefined && params[k] !== null) url.searchParams.set(k, params[k]); });
+
+  const cacheKey = useCacheKey || ('url:' + url.toString());
+  const cached = cacheGet(cacheKey, ttl);
+  if (cached) return cached;
+
+  // basic fetch with retry once
+  try {
+    const res = await fetch(url.toString());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-
-    console.log("Fetched data:", data); // Debug log
-    if (!data.data || data.data.length === 0) {
-      carouselTop.innerHTML = "<p>No anime found.</p>";
-      return;
-    }
-
-    carouselTop.innerHTML = data.data
-      .slice(0, 10)
-      .map(a => `
-        <div class="anime-card">
-          <img src="${a.images.jpg.image_url}" alt="${a.title}">
-          <h4>${a.title}</h4>
-        </div>
-      `)
-      .join('');
+    cacheSet(cacheKey, data);
+    return data;
   } catch (err) {
-    console.error("Failed to load top anime:", err);
-    carouselTop.innerHTML = `<p style="color:red;">Error loading anime: ${err.message}</p>`;
+    console.warn('Primary fetch failed for', url.toString(), err);
+    // try again after small delay
+    await new Promise(r => setTimeout(r, 450));
+    try {
+      const res2 = await fetch(url.toString());
+      if (!res2.ok) throw new Error('HTTP ' + res2.status);
+      const data2 = await res2.json();
+      cacheSet(cacheKey, data2);
+      return data2;
+    } catch (err2) {
+      console.error('Retry fetch failed for', url.toString(), err2);
+      throw err2;
+    }
   }
 }
 
-document.addEventListener("DOMContentLoaded", loadTopAnime);
-// helpers
-const $ = id => document.getElementById(id);
-const $$ = sel => document.querySelectorAll(sel);
-
-// elements
-const carouselTop = $('carousel-top');
-const carouselAiring = $('carousel-airing');
-const carouselUpcoming = $('carousel-upcoming');
-const genreList = $('genreList');
-const genreResults = $('genreResults');
-const heroImage = $('heroImage');
-const heroTitle = $('heroTitle');
-const heroSub = $('heroSub');
-
-const searchInput = $('searchInput');
-const searchResults = $('searchResults');
-
-const notifBtn = $('notifBtn');
-const notifBadge = $('notifBadge');
-
-const userBtn = $('userBtn');
-const userDropdown = $('userDropdown');
-const userDisplay = $('userDisplay');
-const openLogin = $('openLogin');
-const openSettings = $('openSettings');
-const openFav = $('openFav');
-const openWatch = $('openWatch');
-const openReviews = $('openReviews');
-const logoutBtn = $('logoutBtn');
-
-const detailModal = $('detailModal');
-const closeDetail = $('closeDetail');
-const detailImage = $('detailImage');
-const detailTitle = $('detailTitle');
-const detailSynopsis = $('detailSynopsis');
-const detailGenres = $('detailGenres');
-const detailScore = $('detailScore');
-const detailEpisodes = $('detailEpisodes');
-const detailAge = $('detailAge');
-const favBtn = $('favBtn');
-const watchBtn = $('watchBtn');
-const malLink = $('malLink');
-const userRating = $('userRating');
-const submitRating = $('submitRating');
-
-const loginModal = $('loginModal');
-const closeLogin = $('closeLogin');
-const loginSubmit = $('loginSubmit');
-const loginName = $('loginName');
-
-const settingsModal = $('settingsModal');
-const closeSettings = $('closeSettings');
-
-const favModal = $('favModal'); const favList = $('favList'); const closeFav = $('closeFav');
-const watchModal = $('watchModal'); const watchList = $('watchList'); const closeWatch = $('closeWatch');
-
-// storage keys
-let currentUser = localStorage.getItem('ov_user') || null;
-let favorites = JSON.parse(localStorage.getItem('ov_favorites') || '{}');
-let watchlist = JSON.parse(localStorage.getItem('ov_watchlist') || '{}');
-let seenAiring = JSON.parse(localStorage.getItem('ov_seen') || '[]');
-
-function saveFavs(){ localStorage.setItem('ov_favorites', JSON.stringify(favorites)); }
-function saveWatch(){ localStorage.setItem('ov_watchlist', JSON.stringify(watchlist)); }
-function saveSeen(){ localStorage.setItem('ov_seen', JSON.stringify(seenAiring)); }
-function userKey(){ return currentUser || 'guest'; }
-
-async function fetchJson(path){
-  const full = `${API}/${path}`;
-  const res = await fetch(full);
-  if (!res.ok) throw new Error('Network error');
-  return res.json();
+async function searchAnime(q, limit = 12) {
+  if (!q) return null;
+  const path = '/anime';
+  const params = { q: q, limit, page: 1 };
+  return apiFetch(path, params, `search:${q}:${limit}`, 1000 * 60 * 5);
 }
 
-// create card (use large images to avoid blur)
-function makeCard(anime){
-  const div = document.createElement('div');
-  div.className = 'card';
-  const imgUrl = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || '';
-  div.innerHTML = `
-    <div class="favorite-btn" title="Toggle favorite">❤</div>
-    <img loading="lazy" src="${imgUrl}" alt="${escapeHtml(anime.title)}" />
-    <div class="card-body">
-      <div class="title">${escapeHtml(anime.title)}</div>
-      <div class="meta">⭐ ${anime.score ?? 'N/A'}</div>
-    </div>
-  `;
-  // open detail unless favorite tapped
-  div.addEventListener('click', (e)=>{
-    if (e.target.closest('.favorite-btn')) return;
-    openDetail(anime);
-  }, {passive:true});
-  // favorite handler
-  div.querySelector('.favorite-btn').addEventListener('click', (e)=>{
-    e.stopPropagation();
-    toggleFavorite(anime);
+async function getTopAnime(page = 1, limit = PAGE_SIZE) {
+  return apiFetch('/top/anime', { page, limit }, `top:${page}:${limit}`);
+}
+
+async function getSeasonsNow() {
+  return apiFetch('/seasons/now', {}, 'seasons:now', CACHE_TTL_MS);
+}
+
+async function getSeasonsUpcoming() {
+  return apiFetch('/seasons/upcoming', {}, 'seasons:upcoming', CACHE_TTL_MS);
+}
+
+async function getAnimeDetails(id) {
+  if (!id) throw new Error('No id');
+  if (state.detailsCache[id]) return state.detailsCache[id];
+  const data = await apiFetch(`/anime/${id}/full`, {}, `anime:${id}`, CACHE_TTL_MS * 24);
+  state.detailsCache[id] = data;
+  return data;
+}
+
+async function getGenresList() {
+  // Jikan provides a genres endpoint
+  return apiFetch('/genres/anime', {}, 'genres:list', CACHE_TTL_MS * 24 * 3);
+}
+
+/* ==========================
+   RENDERING: cards, feeds, hero
+   ========================== */
+
+function renderCard(anime) {
+  const node = cardTpl.content.cloneNode(true);
+  const card = node.querySelector('.anime-card');
+  const img = node.querySelector('.card-img');
+  const title = node.querySelector('.card-title');
+  const score = node.querySelector('.card-score');
+  const eps = node.querySelector('.card-episodes');
+  const synopsis = node.querySelector('.card-synopsis');
+  const genresWrap = node.querySelector('.card-genres');
+  const moreBtn = node.querySelector('.card-more');
+
+  const id = anime.mal_id || anime.malId || (anime.id || anime.animeId);
+  img.src = (anime.images && anime.images.jpg && anime.images.jpg.image_url) || (anime.image_url) || '';
+  img.alt = anime.title || 'Anime cover';
+  title.textContent = anime.title || 'Untitled';
+  score.textContent = anime.score ? `★ ${anime.score}` : '—';
+  eps.textContent = anime.episodes ? `${anime.episodes} eps` : '';
+  synopsis.textContent = toShort(anime.synopsis || (anime.background || ''), 160);
+
+  // genres
+  const gList = (anime.genres || anime.theme || anime.demographics || []);
+  genresWrap.innerHTML = '';
+  (gList.slice(0,4) || []).forEach(g => {
+    const s = create('span', { class: 'chip', html: safeText(g.name || g) });
+    s.className = 'chip';
+    s.style.cssText = 'padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.02);color:var(--muted);font-size:0.78rem;margin-right:6px';
+    genresWrap.appendChild(s);
   });
-  return div;
+
+  // interactions:
+  card.dataset.id = id;
+  // Open details modal
+  card.addEventListener('click', (e) => {
+    // ignore click if target is more menu button
+    if (e.target.closest('.card-more')) return;
+    openDetailsModal(id);
+  });
+  card.addEventListener('keydown', (e) => { if (e.key === 'Enter') openDetailsModal(id); });
+
+  // more menu placeholder
+  moreBtn.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    showCardMenu(id, moreBtn);
+  });
+
+  return node;
 }
 
-function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function renderFeedInto(containerEl, items = []) {
+  // Clear
+  containerEl.innerHTML = '';
+  if (!items || items.length === 0) {
+    containerEl.innerHTML = `<div class="empty-note" style="padding:18px;color:var(--muted)">No items.</div>`;
+    return;
+  }
 
-// load top anime
-async function loadTop(){
-  carouselTop.innerHTML = 'Loading...';
-  try{
-    const json = await fetchJson('top/anime?limit=12');
-    carouselTop.innerHTML = '';
-    json.data.forEach(a=> carouselTop.appendChild(makeCard(a)));
-    // hero set
-    const pick = json.data[0];
-    heroImage.style.backgroundImage = `url(${pick.images?.jpg?.large_image_url})`;
-    heroTitle.textContent = pick.title;
-    heroSub.textContent = pick.synopsis ? pick.synopsis.slice(0,140)+'...' : 'Featured anime';
-  }catch(err){ carouselTop.innerHTML = '<div class="err">Failed to load top</div>'; console.error(err); }
+  const frag = document.createDocumentFragment();
+  items.forEach(a => {
+    frag.appendChild(renderCard(a));
+  });
+  containerEl.appendChild(frag);
 }
 
-// load airing
-async function loadAiring(){
-  carouselAiring.innerHTML = 'Loading...';
-  try{
-    const json = await fetchJson('seasons/now');
-    carouselAiring.innerHTML = '';
-    (json.data||[]).slice(0,12).forEach(a=> carouselAiring.appendChild(makeCard(a)));
-    // notification simulation
-    const ids = (json.data||[]).map(a=>a.mal_id);
-    const newOnes = ids.filter(id => !seenAiring.includes(id));
-    if (newOnes.length) { notifBadge.textContent = newOnes.length; notifBadge.classList.remove('hidden'); } else notifBadge.classList.add('hidden');
-  }catch(err){ carouselAiring.innerHTML = '<div class="err">Failed to load airing</div>'; console.error(err); }
-}
+/* Hero card render (featured) */
+function renderHero(anime) {
+  refs.heroCard.innerHTML = '';
+  if (!anime) {
+    refs.heroCard.innerHTML = `<div class="hero-placeholder">No featured anime</div>`;
+    return;
+  }
+  const wrapper = create('div', { class: 'hero-feature fade-in' });
+  const cover = create('img', { class: 'cover-img', src: anime.images?.jpg?.image_url || '', alt: anime.title || 'cover' });
+  const title = create('h3', { html: safeText(anime.title) });
+  title.style.color = 'var(--text)';
+  const desc = create('p', { html: toShort(anime.synopsis || '', 240) });
 
-// load upcoming
-async function loadUpcoming(){
-  carouselUpcoming.innerHTML = 'Loading...';
-  try{
-    const json = await fetchJson('seasons/upcoming');
-    carouselUpcoming.innerHTML = '';
-    (json.data||[]).slice(0,12).forEach(a=> carouselUpcoming.appendChild(makeCard(a)));
-  }catch(err){ carouselUpcoming.innerHTML = '<div class="err">Failed to load upcoming</div>'; console.error(err); }
-}
+  const btnA = create('button', { class: 'btn btn-primary', html: 'Details' });
+  btnA.addEventListener('click', () => openDetailsModal(anime.mal_id));
 
-// load genres
-async function loadGenres(){
-  try{
-    const json = await fetchJson('genres/anime');
-    genreList.innerHTML = '';
-    (json.data||[]).slice(0,20).forEach(g=>{
-      const b = document.createElement('button'); b.className='genre-item'; b.textContent=g.name;
-      b.addEventListener('click', ()=> loadByGenre(g.mal_id)); genreList.appendChild(b);
-    });
-  }catch(err){ genreList.innerHTML = '<div class="err">Failed to load genres</div>'; console.error(err); }
-}
-async function loadByGenre(id){
-  genreResults.innerHTML='Loading...';
-  try{
-    const json = await fetchJson(`anime?genres=${id}&limit=24`);
-    genreResults.innerHTML=''; (json.data||[]).forEach(a=> genreResults.appendChild(makeCard(a)));
-  }catch(err){ genreResults.innerHTML='<div class="err">Failed to load genre</div>'; console.error(err); }
-}
-
-// SEARCH (debounced + dropdown)
-let timer = null;
-searchInput.addEventListener('input',(e)=>{
-  const q = e.target.value.trim();
-  if (timer) clearTimeout(timer);
-  if (q.length < 3) { searchResults.classList.add('hidden'); return; }
-  timer = setTimeout(()=> doSearch(q), 300);
-});
-async function doSearch(q){
-  try{
-    const json = await fetchJson(`anime?q=${encodeURIComponent(q)}&limit=8`);
-    searchResults.innerHTML='';
-    (json.data||[]).forEach(a=>{
-      const item = document.createElement('div'); item.className='search-item';
-      item.innerHTML = `<img src="${a.images?.jpg?.image_url}" alt="" /><div><strong>${escapeHtml(a.title)}</strong><div class="muted">⭐ ${a.score ?? 'N/A'}</div></div>`;
-      item.addEventListener('click', ()=>{ searchResults.classList.add('hidden'); openDetail(a); });
-      searchResults.appendChild(item);
-    });
-    if ((json.data||[]).length===0) searchResults.innerHTML='<div class="err" style="padding:8px">No results</div>';
-    searchResults.classList.remove('hidden');
-  }catch(err){ console.error(err); }
-}
-
-// notifications
-notifBtn.addEventListener('click', async ()=>{
-  try{
-    const json = await fetchJson('seasons/now');
-    const newIds = (json.data||[]).map(a=>a.mal_id).filter(id => !seenAiring.includes(id));
-    if (!newIds.length) { alert('No new airing updates since last check.'); return; }
-    const titles = (json.data||[]).filter(a=>newIds.includes(a.mal_id)).map(x=>x.title).slice(0,8);
-    alert(`New airing this session:\n\n• ${titles.join('\n• ')}`);
-    seenAiring = Array.from(new Set([...seenAiring, ...newIds])); saveSeen(); notifBadge.classList.add('hidden');
-  }catch(err){ alert('Failed to load notifications'); console.error(err); }
-});
-
-// 3-dot menu
-userBtn.addEventListener('click', ()=> userDropdown.classList.toggle('hidden'));
-openLogin.addEventListener('click', ()=> { userDropdown.classList.add('hidden'); loginModal.classList.remove('hidden'); });
-openSettings.addEventListener('click', ()=> { userDropdown.classList.add('hidden'); settingsModal.classList.remove('hidden'); });
-openFav.addEventListener('click', ()=> { userDropdown.classList.add('hidden'); favModal.classList.remove('hidden'); renderFavs(); });
-openWatch.addEventListener('click', ()=> { userDropdown.classList.add('hidden'); watchModal.classList.remove('hidden'); renderWatch(); });
-openReviews.addEventListener('click', ()=> { alert('Reviews coming soon — Phase 2.'); });
-
-// LOGIN (local demo)
-loginSubmit.addEventListener('click', ()=>{
-  const name = (loginName.value||'').trim();
-  if (!name) return alert('Enter a display name');
-  currentUser = name; localStorage.setItem('ov_user', name); userDisplay.textContent = name; logoutBtn.style.display='block';
-  loginModal.classList.add('hidden'); alert(`Signed in as ${name} (local demo)`);
-});
-closeLogin.addEventListener('click', ()=> loginModal.classList.add('hidden'));
-logoutBtn.addEventListener('click', ()=> { currentUser=null; localStorage.removeItem('ov_user'); userDisplay.textContent='Not signed in'; logoutBtn.style.display='none'; alert('Signed out'); });
-
-// DETAILS bottom-sheet open/close
-function openDetail(anime){
-  detailImage.src = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || '';
-  detailTitle.textContent = anime.title;
-  detailSynopsis.textContent = anime.synopsis || 'No synopsis available.';
-  detailGenres.textContent = (anime.genres||[]).map(g=>g.name).join(', ') || '';
-  detailScore.textContent = `Score: ${anime.score ?? 'N/A'}`;
-  detailEpisodes.textContent = `Episodes: ${anime.episodes ?? 'N/A'}`;
-  detailAge.textContent = anime.rating || 'N/A';
-  malLink.href = `https://myanimelist.net/anime/${anime.mal_id}`;
-  detailModal.dataset.anime = JSON.stringify(anime);
-  detailModal.classList.remove('hidden');
-  // ensure bottom-sheet on mobile scroll into view
-  setTimeout(()=> { detailModal.querySelector('.modal-sheet')?.scrollIntoView({behavior:'smooth'}); }, 80);
-}
-closeDetail.addEventListener('click', ()=> detailModal.classList.add('hidden'));
-detailModal.addEventListener('click', (e)=> { if (e.target === detailModal) detailModal.classList.add('hidden'); });
-
-// favorites / watchlist actions
-function toggleFavorite(anime){
-  const key = userKey();
-  if (!favorites[key]) favorites[key]=[];
-  const exists = favorites[key].find(a=>a.mal_id===anime.mal_id);
-  if (exists) { favorites[key]=favorites[key].filter(a=>a.mal_id!==anime.mal_id); alert('Removed from favorites'); }
-  else { favorites[key].push(anime); alert('Added to favorites'); }
-  saveFavs();
-}
-function toggleWatchlist(anime){
-  const key = userKey();
-  if (!watchlist[key]) watchlist[key]=[];
-  const exists = watchlist[key].find(a=>a.mal_id===anime.mal_id);
-  if (exists) { watchlist[key]=watchlist[key].filter(a=>a.mal_id!==anime.mal_id); alert('Removed from watchlist'); }
-  else { watchlist[key].push(anime); alert('Added to watchlist'); }
-  saveWatch();
-}
-favBtn.addEventListener('click', ()=> { const anime = JSON.parse(detailModal.dataset.anime||'{}'); if (anime.mal_id) toggleFavorite(anime); });
-watchBtn.addEventListener('click', ()=> { const anime = JSON.parse(detailModal.dataset.anime||'{}'); if (anime.mal_id) toggleWatchlist(anime); });
-
-function renderFavs(){ const key=userKey(); favList.innerHTML=''; const list=favorites[key]||[]; if (!list.length) favList.innerHTML='<div style="padding:10px;color:var(--muted)">No favorites</div>'; else list.forEach(a=> favList.appendChild(makeCard(a))); }
-function renderWatch(){ const key=userKey(); watchList.innerHTML=''; const list=watchlist[key]||[]; if (!list.length) watchList.innerHTML='<div style="padding:10px;color:var(--muted)">No items</div>'; else list.forEach(a=> watchList.appendChild(makeCard(a));) }
-
-// nav buttons scroll handler
-$$('.nav-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    $$('.nav-btn').forEach(x=>x.classList.remove('active'));
-    btn.classList.add('active');
-    const section = btn.dataset.section;
-    if (section === 'home') window.scrollTo({top:0, behavior:'smooth'});
-    else {
-      const target = document.getElementById('section-'+section) || document.getElementById('section-'+section);
-      if (target) target.scrollIntoView({behavior:'smooth', block:'start'});
+  const btnB = create('button', { class: 'btn btn-ghost', html: 'Add to MyList' });
+  btnB.addEventListener('click', async () => {
+    try {
+      if (window.AnimeRatFirebase && window.AnimeRatFirebase.addToMyList) {
+        await window.AnimeRatFirebase.addToMyList(anime.mal_id, { title: anime.title });
+        toast('Added to MyList');
+      } else {
+        toast('Sign in to save to MyList');
+      }
+    } catch (err) {
+      toast('Failed: ' + (err.message || err));
     }
   });
-});
 
-// favorites/watchlist modal close
-closeFav?.addEventListener('click', ()=> favModal.classList.add('hidden'));
-closeWatch?.addEventListener('click', ()=> watchModal.classList.add('hidden'));
-
-// safe init
-async function init(){
-  if (currentUser) { userDisplay.textContent = currentUser; logoutBtn.style.display='block'; }
-  await Promise.all([loadTop(), loadAiring(), loadUpcoming(), loadGenres()]);
-  // click outside closers
-  document.addEventListener('click', e=>{
-    if (!e.target.closest('.search-wrapper')) searchResults.classList.add('hidden');
-    if (!e.target.closest('.user-menu')) userDropdown.classList.add('hidden');
-  });
+  const infoWrap = create('div', {}, [title, desc, create('div', { class: 'hero-ctas' }, [btnA, btnB])]);
+  wrapper.appendChild(cover);
+  wrapper.appendChild(infoWrap);
+  refs.heroCard.appendChild(wrapper);
 }
-// start
-init().catch(console.error);
+
+/* ==========================
+   DETAILS MODAL
+   ========================== */
+
+async function openDetailsModal(id) {
+  if (!id) return;
+  refs.modal.setAttribute('aria-hidden', 'false');
+
+  // lock body scroll
+  document.documentElement.style.overflow = 'hidden';
+
+  try {
+    const resp = await getAnimeDetails(id);
+    const anime = resp && resp.data ? resp.data : null;
+    if (!anime) {
+      refs.modalTitle.textContent = 'Not found';
+      refs.modalSynopsis.textContent = '';
+      return;
+    }
+
+    refs.modalTitle.textContent = anime.title || '';
+    refs.modalCover.src = anime.images?.jpg?.image_url || '';
+    refs.modalCover.alt = anime.title || 'cover';
+    refs.modalScore.textContent = anime.score ? `Score: ${anime.score}` : 'Score: —';
+    refs.modalEpisodes.textContent = `Episodes: ${anime.episodes || '—'}`;
+    refs.modalStatus.textContent = `Status: ${anime.status || '—'}`;
+    // genres
+    refs.modalGenres.innerHTML = '';
+    (anime.genres || []).forEach(g => {
+      const b = create('span', { html: safeText(g.name) });
+      b.className = 'badge';
+      refs.modalGenres.appendChild(b);
+    });
+    // synopsis
+    refs.modalSynopsis.innerHTML = anime.synopsis ? `<p>${safeText(anime.synopsis)}</p>` : '<p>No synopsis available.</p>';
+
+    // trailer
+    if (anime.trailer && anime.trailer.embed_url) {
+      refs.modalTrailerWrap.hidden = false;
+      refs.modalTrailer.innerHTML = `<iframe src="${anime.trailer.embed_url}" width="100%" height="300" frameborder="0" allowfullscreen></iframe>`;
+    } else {
+      refs.modalTrailerWrap.hidden = true;
+      refs.modalTrailer.innerHTML = '';
+    }
+
+    // reviews placeholder load (if Firebase available it should stream)
+    refs.reviewsList.innerHTML = '';
+    if (window.AnimeRatFirebase && window.AnimeRatFirebase.streamReviewsForAnime) {
+      // live stream reviews
+      if (refs._reviewsUnsub) refs._reviewsUnsub();
+      refs._reviewsUnsub = window.AnimeRatFirebase.streamReviewsForAnime(String(id), (reviews) => {
+        renderReviews(reviews || []);
+      });
+    } else {
+      // local placeholder review
+      renderReviews([]);
+    }
+
+    // rating stars setup
+    setupRatingStars();
+
+  } catch (err) {
+    console.error('Details load failed', err);
+    refs.modalTitle.textContent = 'Error loading details';
+    refs.modalSynopsis.textContent = 'Could not load details. Try again later.';
+  }
+}
+
+function closeDetailsModal() {
+  refs.modal.setAttribute('aria-hidden', 'true');
+  document.documentElement.style.overflow = '';
+  // cleanup
+  refs.modalTrailer.innerHTML = '';
+  if (refs._reviewsUnsub) { try{ refs._reviewsUnsub(); }catch(e){} refs._reviewsUnsub = null; }
+}
+
+/* Reviews rendering (client-only unless firebase hooked) */
+function renderReviews(reviews) {
+  refs.reviewsList.innerHTML = '';
+  if (!reviews || reviews.length === 0) {
+    refs.reviewsList.innerHTML = `<div class="empty-note" style="color:var(--muted)">No reviews yet. Be the first!</div>`;
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  reviews.forEach(r => {
+    const node = reviewTpl.content.cloneNode(true);
+    const root = node.querySelector('.review');
+    root.querySelector('.review-user').textContent = r.username || r.userId || 'Guest';
+    root.querySelector('.review-rating').textContent = r.rating ? `★ ${r.rating}` : '';
+    root.querySelector('.review-text').textContent = r.text || '';
+    const t = root.querySelector('.review-time');
+    t.textContent = r.createdAt ? timeAgo(r.createdAt.seconds ? r.createdAt.seconds * 1000 : r.createdAt) : '';
+    frag.appendChild(node);
+  });
+  refs.reviewsList.appendChild(frag);
+}
+
+/* Rating stars UI */
+function setupRatingStars() {
+  refs.ratingStars.innerHTML = '';
+  let current = 0;
+  for (let i=1;i<=5;i++){
+    const btn = create('button', { type: 'button', html: '★' });
+    btn.dataset.value = i;
+    btn.addEventListener('click', async (e) => {
+      current = i;
+      updateStars();
+    });
+    btn.addEventListener('mouseover', (e) => {
+      const v = Number(btn.dataset.value);
+      highlightStars(v);
+    });
+    btn.addEventListener('mouseout', (e) => updateStars());
+    refs.ratingStars.appendChild(btn);
+  }
+  function highlightStars(n){
+    const nodes = refs.ratingStars.querySelectorAll('button');
+    nodes.forEach((b, idx) => {
+      b.classList.toggle('active', (idx+1) <= n);
+    });
+  }
+  function updateStars(){
+    const nodes = refs.ratingStars.querySelectorAll('button');
+    nodes.forEach((b, idx) => {
+      b.classList.toggle('active', (idx+1) <= current);
+    });
+  }
+
+  // submit handler
+  refs.submitReviewBtn.onclick = async () => {
+    const text = refs.reviewText.value.trim();
+    const rating = Array.from(refs.ratingStars.children).filter(b => b.classList.contains('active')).length;
+    const animeId = refs.modal.dataset.animeId;
+    if (!animeId) { toast('Missing anime id'); return; }
+    if (!rating && !text) { toast('Provide rating or review text'); return; }
+
+    if (window.AnimeRatFirebase && window.AnimeRatFirebase.submitReview) {
+      try {
+        await window.AnimeRatFirebase.submitReview(animeId, rating, text);
+        toast('Review submitted');
+        refs.reviewText.value = '';
+      } catch (err) {
+        console.error('Submit review error', err);
+        toast('Failed to submit review: ' + (err.message || err));
+      }
+    } else {
+      // local fallback - append to list (client-only)
+      const fake = { username: 'You (local)', rating, text, createdAt: Date.now() };
+      renderReviews([fake].concat([]));
+      toast('Saved locally (no account)');
+      refs.reviewText.value = '';
+    }
+  };
+}
+
+/* ==========================
+   CARD MENU (3-dot) - placeholders
+   ========================== */
+function showCardMenu(animeId, anchorEl) {
+  // Simple native menu using prompt for now (replace with better UI later)
+  const action = prompt('Options: (1) Add to MyList, (2) Notify me, (3) Share URL, (4) Report\nEnter 1-4:');
+  if (!action) return;
+  if (action === '1') {
+    if (window.AnimeRatFirebase && window.AnimeRatFirebase.addToMyList) {
+      window.AnimeRatFirebase.addToMyList(animeId, { title: 'unknown' }).then(()=>toast('Added')).catch(e=>toast('Add failed'));
+    } else {
+      toast('Sign in to save to MyList');
+    }
+  } else if (action === '2') {
+    if (window.AnimeRatFirebase && window.AnimeRatFirebase.requestAndSaveFCMToken) {
+      // toggling subscribe is app-specific; we'll just save a token here
+      window.AnimeRatFirebase.requestAndSaveFCMToken().then(()=>toast('Notifications enabled')).catch(e=>toast('Notif failed'));
+    } else {
+      toast('Notifications not setup');
+    }
+  } else if (action === '3') {
+    const url = `https://myanimelist.net/anime/${animeId}`;
+    navigator.clipboard?.writeText(url).then(()=>toast('URL copied to clipboard')).catch(()=>prompt('Copy this URL', url));
+  } else if (action === '4') {
+    // report flow placeholder
+    toast('Reported (placeholder)');
+  }
+}
+
+/* ==========================
+   SEARCH SUGGESTIONS & HANDLING
+   ========================== */
+const debouncedSuggest = debounce(async (q) => {
+  if (!q || q.length < 2) { refs.searchSuggest.classList.remove('visible'); refs.searchSuggest.innerHTML = ''; return; }
+  try {
+    const res = await searchAnime(q, 8);
+    const items = res && res.data ? res.data : [];
+    renderSuggestions(items.slice(0,6));
+  } catch (err) {
+    console.error('Suggest error', err);
+    refs.searchSuggest.classList.remove('visible');
+    refs.searchSuggest.innerHTML = '';
+  }
+}, 240);
+
+function renderSuggestions(items) {
+  refs.searchSuggest.innerHTML = '';
+  if (!items || items.length === 0) { refs.searchSuggest.classList.remove('visible'); return; }
+  items.forEach(it => {
+    const li = create('li', { role: 'option' });
+    li.textContent = it.title;
+    li.addEventListener('click', () => {
+      refs.searchInput.value = it.title;
+      refs.searchSuggest.classList.remove('visible');
+      performSearch(it.title);
+    });
+    refs.searchSuggest.appendChild(li);
+  });
+  refs.searchSuggest.classList.add('visible');
+}
+
+/* ==========================
+   SEARCH / FEED LOADERS
+   ========================== */
+async function performSearch(q) {
+  if (!q || q.trim().length === 0) return;
+  state.query = q.trim();
+  state.page = 1;
+  try {
+    const res = await searchAnime(state.query, PAGE_SIZE);
+    const items = res && res.data ? res.data : [];
+    state.feeds.home = items;
+    state.lastSearchResults = items;
+    r
