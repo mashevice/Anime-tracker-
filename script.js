@@ -30,7 +30,7 @@ fetch("https://api.jikan.moe/v4/top/anime")
     console.error(err);
     featured.innerHTML = "❌ Error loading anime. Please refresh or check internet.";
   });
-const API_BASE = 'https://api.jikan.moe/v4';
+const API = "https://corsproxy.io/?https://api.jikan.moe/v4";
 const CACHE_TTL_MS = 1000 * 60 * 30; // 30 minutes
 const PAGE_SIZE = 18; // items per fetch for feed
 
