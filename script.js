@@ -15,6 +15,21 @@
 /* ==========================
    CONFIG
    ========================== */
+const featured = document.querySelector('main');
+featured.innerHTML = "Loading featured...";
+
+fetch("https://api.jikan.moe/v4/top/anime")
+  .then(res => res.json())
+  .then(data => {
+    featured.innerHTML = data.data
+      .slice(0, 10)
+      .map(anime => `<p>${anime.title}</p>`)
+      .join('');
+  })
+  .catch(err => {
+    console.error(err);
+    featured.innerHTML = "❌ Error loading anime. Please refresh or check internet.";
+  });
 const API_BASE = 'https://api.jikan.moe/v4';
 const CACHE_TTL_MS = 1000 * 60 * 30; // 30 minutes
 const PAGE_SIZE = 18; // items per fetch for feed
