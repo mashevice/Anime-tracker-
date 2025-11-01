@@ -3,181 +3,234 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>OtakuVerse — Discover Anime</title>
+  <title>AnimeRat — Discover anime you'll love</title>
+  <meta name="description" content="AnimeRat — search, rate, and follow anime. Smooth UI, genres, details, reviews, and MyList-ready menus." />
+  <meta name="theme-color" content="#0b0710" />
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Lexend:wght@500;600&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
 
-  <link rel="stylesheet" href="style.css" />
+  <!-- NOTE: firebase-config (if you add later) should be loaded BEFORE firebase-client & script.js -->
 </head>
 <body>
+  <!-- APP WRAPPER -->
+  <div id="app" class="app-root">
 
-  <!-- NAVBAR -->
-  <header class="navbar" role="banner">
-    <div class="nav-left">
-      <div id="logo" class="brand">OtakuVerse</div>
+    <!-- TOP NAV -->
+    <header class="topbar" role="banner">
+      <div class="container topbar-inner">
+        <div class="brand" id="brand">
+          <button id="menuToggle" class="icon-btn" aria-label="Open navigation">☰</button>
+          <a href="#" class="brand-link">AnimeRat</a>
+        </div>
 
-      <nav class="nav-links" role="navigation" aria-label="Main navigation">
-        <button class="nav-btn active" data-section="home">Home</button>
-        <button class="nav-btn" data-section="top">Top Rated</button>
-        <button class="nav-btn" data-section="airing">Airing</button>
-        <button class="nav-btn" data-section="upcoming">Upcoming</button>
-        <button class="nav-btn" data-section="genres">Genres</button>
+        <div class="search-wrap">
+          <label for="globalSearch" class="visually-hidden">Search anime</label>
+          <input id="globalSearch" class="search-input" type="search" placeholder="Search anime, studio, genre..." aria-autocomplete="list" aria-controls="searchSuggest" autocomplete="off">
+          <ul id="searchSuggest" class="suggestions" role="listbox" aria-label="Search suggestions"></ul>
+        </div>
+
+        <div class="top-actions">
+          <button id="signinBtn" class="btn btn-ghost" title="Sign in">Sign in</button>
+          <button id="themeToggle" class="icon-btn" aria-label="Toggle theme">🌓</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- SIDE NAV + MAIN -->
+    <div class="container layout">
+      <!-- SIDE NAV -->
+      <nav id="sidebar" class="sidebar" aria-label="Primary">
+        <ul class="navlist">
+          <li class="nav-item"><button class="navlink active" data-section="home">Home</button></li>
+          <li class="nav-item"><button class="navlink" data-section="top">Top Rated</button></li>
+          <li class="nav-item"><button class="navlink" data-section="airing">Airing Now</button></li>
+          <li class="nav-item"><button class="navlink" data-section="upcoming">Upcoming</button></li>
+          <li class="nav-item"><button class="navlink" data-section="movies">Movies</button></li>
+          <li class="nav-item"><button class="navlink" data-section="genres">Genres</button></li>
+          <li class="nav-item"><button class="navlink" data-section="mylist">My List</button></li>
+        </ul>
+
+        <div class="sidebar-block">
+          <h4>Filter by genre</h4>
+          <div id="genreList" class="genre-list" aria-live="polite"></div>
+        </div>
+
+        <div class="sidebar-block">
+          <h4>Quick actions</h4>
+          <button id="refreshBtn" class="btn btn-sm">Refresh Data</button>
+          <button id="randomBtn" class="btn btn-sm">Random Pick</button>
+        </div>
       </nav>
+
+      <!-- MAIN CONTENT -->
+      <main id="main" class="main" role="main">
+        <!-- HERO / SEARCH RESULTS -->
+        <section id="home" class="page-section active" data-section="home">
+          <div class="hero">
+            <div class="hero-left">
+              <h1 class="hero-title">Discover anime you'll love</h1>
+              <p class="hero-sub">Featured picks, airing now, upcoming releases — clean, fast, and private.</p>
+              <div class="hero-ctas">
+                <button id="ctaTop" class="btn btn-primary">Explore Top</button>
+                <button id="ctaAiring" class="btn btn-outline">Airing Now</button>
+              </div>
+            </div>
+            <div class="hero-right" id="hero-card">
+              <!-- Filled dynamically -->
+              <div class="hero-placeholder">Loading featured...</div>
+            </div>
+          </div>
+
+          <div class="section-controls">
+            <div class="controls-left">
+              <label for="sortSelect" class="small-label">Sort</label>
+              <select id="sortSelect" class="select">
+                <option value="popularity">Popularity</option>
+                <option value="score">Score</option>
+                <option value="episodes">Episodes</option>
+                <option value="airing">Airing date</option>
+              </select>
+            </div>
+            <div class="controls-right">
+              <label class="small-label">View</label>
+              <button id="gridView" class="view-toggle active" title="Grid view">▦</button>
+              <button id="listView" class="view-toggle" title="List view">☰</button>
+            </div>
+          </div>
+
+          <div id="feed" class="feed grid">
+            <!-- Anime cards will be rendered here -->
+          </div>
+
+          <div class="load-wrap">
+            <button id="loadMoreBtn" class="btn btn-outline">Load more</button>
+          </div>
+        </section>
+
+        <!-- OTHER SECTIONS (hidden, toggled) -->
+        <section id="top" class="page-section" data-section="top" hidden>
+          <h2>Top Rated</h2>
+          <div id="topFeed" class="feed grid"></div>
+        </section>
+
+        <section id="airing" class="page-section" data-section="airing" hidden>
+          <h2>Airing Now</h2>
+          <div id="airingFeed" class="feed grid"></div>
+        </section>
+
+        <section id="upcoming" class="page-section" data-section="upcoming" hidden>
+          <h2>Upcoming</h2>
+          <div id="upcomingFeed" class="feed grid"></div>
+        </section>
+
+        <section id="movies" class="page-section" data-section="movies" hidden>
+          <h2>Movies</h2>
+          <div id="moviesFeed" class="feed grid"></div>
+        </section>
+
+        <section id="genres" class="page-section" data-section="genres" hidden>
+          <h2>Genres</h2>
+          <div id="genresFeed" class="feed grid"></div>
+        </section>
+
+        <section id="mylist" class="page-section" data-section="mylist" hidden>
+          <h2>My List</h2>
+          <div id="myListFeed" class="feed grid"></div>
+        </section>
+      </main>
     </div>
 
-    <div class="nav-right">
-      <div class="search-wrapper" id="searchWrap">
-        <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-          <path fill="currentColor" d="M21 21l-4.35-4.35m1.35-5.65A7 7 0 1 1 3 10a7 7 0 0 1 15 0z"></path>
-        </svg>
-        <input id="searchInput" class="search-input" placeholder="Search anime (3+ chars)" aria-label="Search anime">
-        <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Search results"></div>
+    <!-- FOOTER -->
+    <footer class="site-footer" role="contentinfo">
+      <div class="container footer-inner">
+        <div>© <span id="year"></span> AnimeRat</div>
+        <div class="attribution">Data via <a href="https://jikan.moe" target="_blank" rel="noopener">Jikan API</a>.</div>
       </div>
+    </footer>
 
-      <button id="notifBtn" class="icon-btn" title="Notifications" aria-label="Notifications">🔔<span id="notifBadge" class="badge hidden">0</span></button>
+    <!-- MODAL: Anime Details -->
+    <div id="modal" class="modal" role="dialog" aria-hidden="true" aria-labelledby="modalTitle" aria-modal="true">
+      <div class="modal-backdrop" data-action="close"></div>
+      <div class="modal-panel" role="document">
+        <button class="modal-close icon-btn" data-action="close" aria-label="Close">✕</button>
 
-      <div class="user-menu">
-        <button id="userBtn" class="icon-btn" aria-haspopup="true" aria-expanded="false" title="User menu">⋯</button>
-        <div id="userDropdown" class="dropdown hidden" role="menu" aria-hidden="true">
-          <div id="userDisplay" class="user-display">Not signed in</div>
-          <button class="dropdown-item" id="openLogin">Sign in</button>
-          <button class="dropdown-item" id="openSettings">Settings</button>
-          <button class="dropdown-item" id="openFav">My Favorites</button>
-          <button class="dropdown-item" id="openWatch">My Watchlist</button>
-          <button class="dropdown-item" id="openReviews">Reviews</button>
-          <button class="dropdown-item" id="logoutBtn" style="display:none">Sign out</button>
+        <div class="modal-body">
+          <aside class="modal-left">
+            <img id="modalCover" src="" alt="" class="cover-img" loading="lazy">
+            <div id="modalActions" class="modal-actions">
+              <button id="modalAddList" class="btn btn-sm">+ MyList</button>
+              <button id="modalRate" class="btn btn-sm">Rate</button>
+              <button id="modalMore" class="icon-btn">⋯</button>
+            </div>
+          </aside>
+
+          <section class="modal-right">
+            <h2 id="modalTitle">Title</h2>
+            <div class="meta-row">
+              <span id="modalScore" class="badge">Score: —</span>
+              <span id="modalEpisodes" class="badge">Episodes: —</span>
+              <span id="modalStatus" class="badge">Status: —</span>
+            </div>
+
+            <div class="genres" id="modalGenres"></div>
+
+            <div class="desc" id="modalSynopsis"></div>
+
+            <div class="trailer" id="modalTrailerWrap" hidden>
+              <label class="small-label">Trailer</label>
+              <div id="modalTrailer"></div>
+            </div>
+
+            <div class="reviews" id="modalReviews">
+              <h3>Reviews</h3>
+              <div id="reviewsList"></div>
+              <div class="review-form">
+                <label for="reviewText" class="small-label">Write a review</label>
+                <textarea id="reviewText" rows="3" placeholder="Share your thoughts..."></textarea>
+                <div class="review-controls">
+                  <div id="ratingStars" class="stars" role="radiogroup" aria-label="Rate this anime"></div>
+                  <button id="submitReview" class="btn btn-primary">Submit</button>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
-  </header>
 
-  <!-- HERO -->
-  <main id="main">
-    <section id="hero" class="hero">
-      <div class="hero-left">
-        <h1 id="heroTitle">Discover anime you'll love</h1>
-        <p id="heroSub">Featured picks, live airing, upcoming releases and top-rated anime — all in one place.</p>
-        <div class="hero-ctas">
-          <button id="ctaTop" class="btn primary">Explore Top</button>
-          <button id="ctaAiring" class="btn outline">Airing Now</button>
+    <!-- TEMPLATES (not visible) -->
+    <template id="cardTemplate">
+      <article class="anime-card" tabindex="0" role="article">
+        <div class="card-media">
+          <img class="card-img" src="" alt="" loading="lazy">
+          <button class="card-more icon-btn" title="Options">⋯</button>
         </div>
-      </div>
-      <div id="heroImage" class="hero-image" aria-hidden="true"></div>
-    </section>
-
-    <!-- Top Rated -->
-    <section id="section-top" class="section" aria-label="Top Rated">
-      <h2>Top Rated</h2>
-      <div class="carousel" id="carousel-top" tabindex="0" aria-live="polite"></div>
-    </section>
-
-    <!-- Airing -->
-    <section id="section-airing" class="section" aria-label="Airing Now">
-      <h2>Airing Now</h2>
-      <div class="carousel" id="carousel-airing" tabindex="0" aria-live="polite"></div>
-    </section>
-
-    <!-- Upcoming -->
-    <section id="section-upcoming" class="section" aria-label="Upcoming">
-      <h2>Upcoming</h2>
-      <div class="carousel" id="carousel-upcoming" tabindex="0" aria-live="polite"></div>
-    </section>
-
-    <!-- Genres -->
-    <section id="section-genres" class="section" aria-label="Genres">
-      <h2>Browse by Genre</h2>
-      <div id="genreList" class="genre-list"></div>
-      <div id="genreResults" class="anime-grid"></div>
-    </section>
-
-    <!-- Watchlist & Favorites hidden sections -->
-    <section id="section-watchlist" class="section hidden-section">
-      <h2>Your Watchlist</h2>
-      <div id="watchlistGrid" class="anime-grid"></div>
-    </section>
-
-    <section id="section-favorites" class="section hidden-section">
-      <h2>Your Favorites</h2>
-      <div id="favoritesGrid" class="anime-grid"></div>
-    </section>
-  </main>
-
-  <!-- DETAILS BOTTOM SHEET / MODAL -->
-  <div id="detailModal" class="modal hidden" role="dialog" aria-hidden="true">
-    <div class="modal-sheet" role="document">
-      <button id="closeDetail" class="modal-close" aria-label="Close">✕</button>
-      <div class="detail-inner">
-        <img id="detailImage" src="" alt="Poster" />
-        <div class="detail-body">
-          <h2 id="detailTitle"></h2>
-          <div class="meta">
-            <span id="detailScore" class="tag"></span>
-            <span id="detailEpisodes" class="tag"></span>
-            <span id="detailAge" class="tag"></span>
+        <div class="card-body">
+          <h3 class="card-title"></h3>
+          <div class="card-meta">
+            <span class="card-score">—</span>
+            <span class="card-episodes">—</span>
           </div>
-          <p id="detailSynopsis"></p>
-          <p><strong>Genres:</strong> <span id="detailGenres"></span></p>
-
-          <div class="detail-actions">
-            <button id="favBtn" class="btn outline">❤ Favorite</button>
-            <button id="watchBtn" class="btn primary">+ Watchlist</button>
-            <a id="malLink" class="btn ghost" target="_blank" rel="noopener">View on MAL</a>
-          </div>
-
-          <div class="rating-row">
-            <label>Your rating:</label>
-            <select id="userRating">
-              <option value="">Rate</option><option>10</option><option>9</option><option>8</option><option>7</option><option>6</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option>
-            </select>
-            <button id="submitRating" class="btn small">Submit</button>
-          </div>
+          <p class="card-synopsis"></p>
+          <div class="card-genres"></div>
         </div>
+      </article>
+    </template>
+
+    <template id="reviewTemplate">
+      <div class="review">
+        <strong class="review-user"></strong>
+        <span class="review-rating"></span>
+        <p class="review-text"></p>
+        <time class="review-time"></time>
       </div>
-    </div>
+    </template>
+
   </div>
 
-  <!-- LOGIN MODAL (local demo) -->
-  <div id="loginModal" class="modal hidden" role="dialog" aria-hidden="true">
-    <div class="modal-panel small">
-      <button id="closeLogin" class="modal-close">✕</button>
-      <div class="modal-body">
-        <h3>Sign in (demo)</h3>
-        <input id="loginName" placeholder="Display name" />
-        <div style="margin-top:12px"><button id="loginSubmit" class="btn primary">Sign in</button></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SETTINGS -->
-  <div id="settingsModal" class="modal hidden" role="dialog" aria-hidden="true">
-    <div class="modal-panel small">
-      <button id="closeSettings" class="modal-close">✕</button>
-      <div class="modal-body">
-        <h3>Settings</h3>
-        <label>Theme</label>
-        <select id="themeSelect"><option value="dark">Dark</option><option value="light">Light</option></select>
-      </div>
-    </div>
-  </div>
-
-  <!-- FAVORITES / WATCHLIST MODALS -->
-  <div id="favModal" class="modal hidden"><div class="modal-panel"><button class="modal-close" id="closeFav">✕</button><div id="favList" class="anime-grid"></div></div></div>
-  <div id="watchModal" class="modal hidden"><div class="modal-panel"><button class="modal-close" id="closeWatch">✕</button><div id="watchList" class="anime-grid"></div></div></div>
-
-  <!-- FOOTER -->
-  <footer class="site-footer">
-    <p>© 2025 OtakuVerse. All rights reserved.</p>
-    <p>
-      OtakuVerse is an independent fan-made project and is not affiliated with or endorsed by MyAnimeList, Crunchyroll, Funimation, Netflix, or any anime studios.
-      All anime data and images are sourced from the public Jikan API for informational purposes only.
-    </p>
-    <p>
-      Under Section 107 of the Copyright Act of 1976, allowance is made for “fair use” for purposes such as criticism, comment, news reporting, teaching, scholarship, or research.
-      If you are a rights holder and believe your content appears here improperly, contact <a href="mailto:support@otakuverse.example">support@otakuverse.example</a>.
-    </p>
-  </footer>
-
-<script src="script.js"></script>
+  <!-- Scripts (load script.js last) -->
+  <script src="script.js" defer></script>
 </body>
           </html>
