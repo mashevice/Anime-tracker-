@@ -14,7 +14,8 @@
 
 /* ==========================
    CONFIG
-   ========================== */
+ ========================== */
+alert("JS connected!");
 const featured = document.querySelector('main');
 
 const API = "https://corsproxy.io/?https://api.jikan.moe/v4";
